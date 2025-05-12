@@ -1,0 +1,1 @@
+sqlite3 /var/mobile/Library/FrontBoard/applicationState.db
