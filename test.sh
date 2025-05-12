@@ -3,11 +3,13 @@ BID=$(uicache -l | grep -i codex | cut -d' ' -f1)   # com.delta.roblox
 
 LABEL_PREFIX="UIKitApplication:$BID"                                     # как он отображается в launchctl
 
+launchctl list gui/$(id -u mobile)/$BID
+echo $?
+
 # В launchd-таблице PID = "-" → приложение загружено, но не активно.
 # Число → реально запущено (в Fore/Back-state нам сейчас не важно).
-read pid status <<<"$(launchctl list gui/$(id -u mobile)/$BID | awk '/"PID"/{p=$3}/"Status"/{s=$3} END{print p,s}')"
+pid=$(launchctl list | awk -v lbl="$LABEL_PREFIX" '$3 ~ lbl {print $1}')
 echo "$pid"
-echo "$status"
 
 if [ -z "$pid" ] ; then
     echo "Roblox-мод НЕ ЗАГРУЖЁН"
