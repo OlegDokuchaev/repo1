@@ -1,4 +1,4 @@
-APP="$(uicache -l | grep -i roblox | cut -d ' ' -f1)"
+APP="$(uicache -l | grep -i codex | cut -d ' ' -f1)"
 
 sqlite3 /var/mobile/Library/FrontBoard/applicationState.db " \
 SELECT key_tab.key, hex(value) \
