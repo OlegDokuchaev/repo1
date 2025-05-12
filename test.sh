@@ -1,9 +1,11 @@
 is_roblox_running() {                # $1 = Bundle ID
+  launchctl print "gui/$(id -u mobile)/$1"
   launchctl print "gui/$(id -u mobile)/$1" 2>/dev/null |
     grep -q "state = running"
 }
 
 is_roblox_in_memory() {              # 0 = не в памяти
+  launchctl print "gui/$(id -u mobile)/$1"
   launchctl print "gui/$(id -u mobile)/$1" 2>/dev/null > /dev/null
 }
 
