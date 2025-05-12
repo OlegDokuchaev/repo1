@@ -1,11 +1,10 @@
-# 1. Берём bundle-ID мода
-BID=$(uicache -l | grep -i codex | cut -d' ' -f1)
-echo "$BID"
+# 0. нужен точный Bundle-ID клиента
+BID=$(uicache -l | grep -i codex | cut -d' ' -f1)   # com.delta.roblox
 
-# 2. UID mobile
+# 1. UID мобильного пользователя (на iOS это 501)
 UID=$(id -u mobile)
-echo "$UID"
 
-# 3. Печатаем агент
-launchctl asuser "$UID" launchctl print "gui/$UID/$BID"
+# 2. Проверяем, жив ли агент
+launchctl asuser "$UID" \
+        launchctl print "user/$UID/$BID"
 echo "EXIT=$?"
