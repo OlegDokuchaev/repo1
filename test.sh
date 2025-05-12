@@ -16,7 +16,8 @@ check_app_state() {
 
 BUNDLE="$(uicache -l | grep -i roblox | cut -d ' ' -f1)"
 case $(check_app_state "$BUNDLE") in
-  0|unknown)   echo "Roblox закрыт";;
+  unknown)     echo "Таблица не найдена";;
+  0)           echo "Roblox закрыт";;
   2)           echo "Roblox в foreground";;
   3|4)         echo "Roblox в фоне/спит";;
 esac
