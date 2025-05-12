@@ -1,8 +1,18 @@
-APP="$(uicache -l | grep -i codex | cut -d ' ' -f1)"
+is_roblox_running() {                # $1 = Bundle ID
+  launchctl print "gui/$(id -u mobile)/$1" 2>/dev/null |
+    grep -q "state = running"
+}
 
-sqlite3 /var/mobile/Library/FrontBoard/applicationState.db " \
-SELECT key_tab.key, hex(value) \
-FROM   kvs \
-JOIN   application_identifier_tab ait ON kvs.application_identifier = ait.id \
-JOIN   key_tab                         ON kvs.key = key_tab.id \
-WHERE  ait.application_identifier = '$APP';"
+is_roblox_in_memory() {              # 0 = не в памяти
+  launchctl print "gui/$(id -u mobile)/$1" 2>/dev/null > /dev/null
+}
+
+BID="$(uicache -l | grep -i codex | cut -d ' ' -f1)"
+
+if is_roblox_running "$BID"; then
+   echo "Roblox сейчас на экране (running)"
+elif is_roblox_in_memory "$BID"; then
+   echo "Roblox заморожен в памяти (suspended)"
+else
+   echo "Roblox полностью выгружен"
+fi
