@@ -1,19 +1,21 @@
 #!/bin/bash
 
-is_roblox_running_sql() {
-  local BUNDLE="$1"
-  local STATE=$(sqlite3 /var/mobile/Library/FrontBoard/applicationState.db \
-                "SELECT process_state FROM application_state \
-                 WHERE application_identifier='$BUNDLE';")
-  echo "$STATE"
+is_roblox_running() {
+  local BID="$1"
+  LABEL_PREFIX="UIKitApplication:$BID"
 
-  [[ "$STATE" =~ ^(2|3|4)$ ]]
+  read pid status <<< "$(launchctl list | awk -v lbl="$LABEL_PREFIX" '$3 ~ lbl {print $1,$2}')"
+
+  if [[ "$pid" =~ ^[0-9]+$ ]] && [[ "$status" == 0 ]]; then
+        return 0
+  fi
+  return 1
 }
 
 BUNDLE="$(uicache -l | grep -i roblox | cut -d ' ' -f1)"
 PLACE=142823291
 echo "$BUNDLE"
 
-if ! is_roblox_running_sql "$BUNDLE"; then
+if ! is_roblox_running "$BUNDLE"; then
     uiopen "roblox://placeId=${PLACE}"
 fi
