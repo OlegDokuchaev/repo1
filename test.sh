@@ -16,7 +16,7 @@ check_app_state() {
   echo "unknown"   # таблица не найдена
 }
 
-BUNDLE="$(uicache -l | grep -i codex | cut -d ' ' -f1)"
+BUNDLE="$(uicache -l | grep -i roblox | cut -d ' ' -f1)"
 case $(check_app_state "$BUNDLE") in
   0|unknown)   echo "Roblox закрыт";;
   2)           echo "Roblox в foreground";;
