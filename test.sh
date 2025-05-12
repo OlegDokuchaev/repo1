@@ -9,14 +9,12 @@ check_app_state() {
   ; do
      table=${combo% *}; col=${combo#* }
      state=$(sqlite3 "$db" "SELECT state FROM $table WHERE $col='$BID' LIMIT 1;" 2>/dev/null)
-     echo "$table"
-     echo "$state"
      [ -n "$state" ] && { echo "$state"; return; }
   done
   echo "unknown"   # таблица не найдена
 }
 
-BUNDLE="$(uicache -l | grep -i codex | cut -d ' ' -f1)"
+BUNDLE="$(uicache -l | grep -i roblox | cut -d ' ' -f1)"
 case $(check_app_state "$BUNDLE") in
   0|unknown)   echo "Roblox закрыт";;
   2)           echo "Roblox в foreground";;
