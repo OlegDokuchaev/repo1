@@ -1,10 +1,8 @@
-BID="$(uicache -l | grep -i codex | cut -d ' ' -f1)"
-launchctl print "gui/$(id -u mobile)/$BID"
-echo $?
-launchctl print "gui/$(id -u mobile)/$BID"
-echo $?
-BID="$(uicache -l | grep -i roblox | cut -d ' ' -f1)"
-launchctl print "gui/$(id -u mobile)/$BID"
-echo $?
-launchctl print "gui/$(id -u mobile)/$BID"
-echo $?
+# 1. Берём bundle-ID мода
+BID=$(uicache -l | grep -i codex | cut -d' ' -f1)
+
+# 2. UID mobile
+UID=$(id -u mobile)
+
+# 3. Печатаем агент
+launchctl asuser "$UID" launchctl print "gui/$UID/$BID" && echo "EXIT=$?"
