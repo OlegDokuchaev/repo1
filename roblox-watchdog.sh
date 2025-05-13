@@ -6,6 +6,8 @@ is_roblox_running() {
   LABEL_PREFIX="UIKitApplication:$BID"
 
   read pid status <<< "$(/var/jb/usr/bin/launchctl list | /var/jb/usr/bin/awk -v lbl="$LABEL_PREFIX" '$3 ~ lbl {print $1,$2}')"
+  echo "$pid"
+  echo "$status"
 
   if [[ "$pid" =~ ^[0-9]+$ ]] && [[ "$status" == 0 ]]; then
         return 0
