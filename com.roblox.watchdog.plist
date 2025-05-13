@@ -1,22 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
- "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
- <dict>
-  <key>Label</key>           <string>com.roblox.watchdog</string>
+<dict>
+    <key>Label</key>            <string>com.roblox.watchdog</string>
+    <key>ProgramArguments</key> <array>
+        <string>/var/jb/usr/local/bin/roblox-watchdog.sh</string>
+    </array>
 
-  <key>ProgramArguments</key>
-  <array>
-   <string>/var/jb/usr/local/bin/roblox-watchdog.sh</string>
-  </array>
+    <!-- fire every 60 s and once right after bootstrap -->
+    <key>StartInterval</key>    <integer>60</integer>
+    <key>RunAtLoad</key>        <true/>
 
-  <!-- каждые 60 с -->
-  <key>StartInterval</key>   <integer>60</integer>
-  <key>RunAtLoad</key>       <true/>
+    <!-- drop privileges to “mobile” but remain a LaunchDaemon -->
+    <key>UserName</key>         <string>mobile</string>
 
-  <key>UserName</key>        <string>mobile</string>
-
-  <key>StandardOutPath</key> <string>/var/mobile/Library/Logs/roblox-watchdog/watchdog.out</string>
-  <key>StandardErrorPath</key><string>/var/mobile/Library/Logs/roblox-watchdog/watchdog.err</string>
- </dict>
+    <!-- stdout/stderr go through ASL/syslog; nothing here -->
+</dict>
 </plist>
