@@ -12,10 +12,10 @@ SCRIPT_DST  = $(BINDIR)/$(SCRIPT)
 
 SHELL       = $(JBREV)/bin/sh
 INSTALL     = $(JBREV)/usr/bin/install
-MKDIR       = /bin/mkdir -p
-NOHUP       = /var/jb/usr/bin/nohup
+MKDIR       = $(JBREV)/usr/bin/mkdir -p
+NOHUP       = $(JBREV)/usr/bin/nohup
 KILL        = /bin/kill
-TAIL        = /usr/bin/tail
+TAIL        = $(JBREV)/usr/bin/tail
 
 .PHONY: all install start stop restart status uninstall log
 
