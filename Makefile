@@ -26,20 +26,20 @@ dirs:
 install: dirs $(SCRIPT) $(PLIST)
 	$(INSTALL) -m 755 $(SCRIPT) $(SCRIPT_DEST)
 	$(INSTALL) -m 644 $(PLIST)  $(PLIST_DEST)
-	-$(LAUNCHCTL) bootout $(DOMAIN) $(PLIST_DEST) 2>/dev/null || true
-	$(LAUNCHCTL) bootstrap $(DOMAIN) $(PLIST_DEST)
-	$(LAUNCHCTL) enable    $(DOMAIN)/com.roblox.watchdog
+	-$(LAUNCHCTL) enable    $(DOMAIN)/$(LABEL)           || true
+	-$(LAUNCHCTL) bootout   $(DOMAIN)/$(PLIST_DEST)      2>/dev/null || true
+	 $(LAUNCHCTL) bootstrap $(DOMAIN) $(PLIST_DEST)
+	 $(LAUNCHCTL) kickstart -k $(DOMAIN)/$(LABEL)
 	@echo "✓ watchdog installed & running"
 
 uninstall:
 	-$(LAUNCHCTL) bootout $(DOMAIN) $(PLIST_DEST) 2>/dev/null || true
-	rm -f $(PLIST_DEST) $(SCRIPT_DEST)
+	 rm -f $(PLIST_DEST) $(SCRIPT_DEST)
 	@echo "✓ watchdog removed"
 
 reload:
-	$(LAUNCHCTL) bootout   $(DOMAIN) $(PLIST_DEST)
-	$(LAUNCHCTL) bootstrap $(DOMAIN) $(PLIST_DEST)
+	$(LAUNCHCTL) kickstart -k $(DOMAIN)/$(LABEL)
 	@echo "✓ watchdog reloaded"
 
 log:
-	log stream --predicate 'eventMessage CONTAINS "roblox-watchdog"' --info
+	log stream --style syslog --predicate 'process == "roblox-watchdog"' --info

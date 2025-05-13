@@ -8,13 +8,11 @@
         <string>/var/jb/usr/local/bin/roblox-watchdog.sh</string>
     </array>
 
-    <!-- fire every 60 s and once right after bootstrap -->
     <key>StartInterval</key>    <integer>60</integer>
     <key>RunAtLoad</key>        <true/>
-
-    <!-- drop privileges to “mobile” but remain a LaunchDaemon -->
     <key>UserName</key>         <string>mobile</string>
 
-    <!-- stdout/stderr go through ASL/syslog; nothing here -->
+    <key>StandardOutPath</key> <string>/dev/null</string>
+  <key>StandardErrorPath</key><string>/dev/null</string>
 </dict>
 </plist>
