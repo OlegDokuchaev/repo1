@@ -19,7 +19,7 @@ stop:
 	@pids=$$(ps -eo pid,args | grep -E '[0-9]+\s+\(sleep' | awk '{print $$1}'); \
 	if [ -n "$$pids" ]; then \
 	    echo "➜  killing $$pids";                   \
-	    kill -9 $$pids;                             \
+	    sudo kill -9 $$pids;                             \
 	else                                            \
 	    echo "➜  watchdog not running";             \
 	fi
