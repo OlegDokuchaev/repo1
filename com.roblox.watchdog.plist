@@ -9,8 +9,8 @@
    <string>/var/jb/usr/local/bin/roblox-watchdog.sh</string>
   </array>
 
-  <!-- Проверять каждые 30 секунд -->
-  <key>StartInterval</key>   <integer>30</integer>
+  <!-- Проверять каждые 60 секунд -->
+  <key>StartInterval</key>   <integer>60</integer>
   <key>RunAtLoad</key>       <true/>
 
   <!-- mobile достаточно; root не нужен -->
