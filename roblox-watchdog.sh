@@ -1,10 +1,5 @@
 #!/bin/bash
 
-if [[ -z "${RBX_WD_REEXEC:-}" ]]; then
-  export RBX_WD_REEXEC=1
-  exec -a roblox-watchdog "$0" "$@"
-fi
-
 is_roblox_running() {
   local BID="$1"
   LABEL_PREFIX="UIKitApplication:$BID"
