@@ -1,46 +1,50 @@
-### Installation paths ########################################################
-JBREV        ?= /var/jb
-BINDIR       =  $(JBREV)/usr/local/bin
-LDIR         =  $(JBREV)/Library/LaunchDaemons
+###############################################################################
+# paths
+###############################################################################
+JBREV      ?= /var/jb
+BINDIR      = $(JBREV)/usr/local/bin
+AGENTDIR    = /var/mobile/Library/LaunchAgents
 
-SCRIPT       =  roblox-watchdog.sh
-PLIST        =  com.roblox.watchdog.plist
+SCRIPT      = roblox-watchdog.sh
+PLIST       = com.roblox.watchdog.plist
 
-SCRIPT_DEST  =  $(BINDIR)/$(SCRIPT)
-PLIST_DEST   =  $(LDIR)/$(PLIST)
+SCRIPT_DST  = $(BINDIR)/$(SCRIPT)
+PLIST_DST   = $(AGENTDIR)/$(PLIST)
 
-### Tools #####################################################################
+###############################################################################
+# tools
+###############################################################################
 SHELL        =  $(JBREV)/bin/sh
-INSTALL      =  $(JBREV)/usr/bin/install
-LAUNCHCTL    =  $(JBREV)/usr/bin/launchctl
-LABEL        =  com.roblox.watchdog
-DOMAIN       =  system
+INSTALL     = $(JBREV)/usr/bin/install
+LAUNCHCTL   = $(JBREV)/usr/bin/launchctl
+UID         := $(shell id -u mobile)
+DOMAIN      = gui/$(UID)
 
-.PHONY: all dirs install uninstall reload log
+.PHONY: all install uninstall reload log dirs
 
 all:
 	@echo "Nothing to build – run 'make install'"
 
 dirs:
-	$(INSTALL) -d -m 755 $(BINDIR) $(LDIR)
+	$(INSTALL) -d -m755 $(BINDIR) $(AGENTDIR) /var/mobile/Library/Logs
 
 install: dirs $(SCRIPT) $(PLIST)
-	$(INSTALL) -m 755 $(SCRIPT) $(SCRIPT_DEST)
-	$(INSTALL) -m 644 $(PLIST)  $(PLIST_DEST)
-	-$(LAUNCHCTL) enable    $(DOMAIN)/$(LABEL)           || true
-	-$(LAUNCHCTL) bootout   $(DOMAIN)/$(PLIST_DEST)      2>/dev/null || true
-	 $(LAUNCHCTL) bootstrap $(DOMAIN) $(PLIST_DEST)
-	 $(LAUNCHCTL) kickstart -k $(DOMAIN)/$(LABEL)
+	$(INSTALL) -m755 $(SCRIPT) $(SCRIPT_DST)
+	$(INSTALL) -m644 $(PLIST)  $(PLIST_DST)
+	-$(LAUNCHCTL) bootout  $(DOMAIN) $(PLIST_DST) 2>/dev/null || true
+	$(LAUNCHCTL) bootstrap $(DOMAIN) $(PLIST_DST)
+	$(LAUNCHCTL) enable    $(DOMAIN)/com.roblox.watchdog
 	@echo "✓ watchdog installed & running"
 
 uninstall:
-	-$(LAUNCHCTL) bootout $(DOMAIN) $(PLIST_DEST) 2>/dev/null || true
-	 rm -f $(PLIST_DEST) $(SCRIPT_DEST)
+	-$(LAUNCHCTL) bootout $(DOMAIN) $(PLIST_DST) 2>/dev/null || true
+	rm -f $(PLIST_DST) $(SCRIPT_DST)
 	@echo "✓ watchdog removed"
 
 reload:
-	$(LAUNCHCTL) kickstart -k $(DOMAIN)/$(LABEL)
+	$(LAUNCHCTL) bootout   $(DOMAIN) $(PLIST_DST)
+	$(LAUNCHCTL) bootstrap $(DOMAIN) $(PLIST_DST)
 	@echo "✓ watchdog reloaded"
 
 log:
-	log stream --style syslog --predicate 'process == "roblox-watchdog"' --info
+	log stream --style syslog --predicate 'subsystem == "com.apple.system.logger" AND senderImagePath ENDSWITH "roblox-watchdog"'

@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+ "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>Label</key>            <string>com.roblox.watchdog</string>
-    <key>ProgramArguments</key> <array>
+    <key>ProgramArguments</key>
+    <array>
         <string>/var/jb/usr/local/bin/roblox-watchdog.sh</string>
     </array>
 
     <key>StartInterval</key>    <integer>60</integer>
     <key>RunAtLoad</key>        <true/>
+
     <key>UserName</key>         <string>mobile</string>
 
-    <key>StandardOutPath</key> <string>/dev/null</string>
-  <key>StandardErrorPath</key><string>/dev/null</string>
+    <key>StandardOutPath</key>  <string>/var/mobile/Library/Logs/roblox-watchdog.log</string>
+    <key>StandardErrorPath</key><string>/var/mobile/Library/Logs/roblox-watchdog.log</string>
 </dict>
 </plist>
