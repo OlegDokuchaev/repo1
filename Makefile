@@ -5,6 +5,7 @@ JBREV       ?= /var/jb
 BINDIR       = $(JBREV)/usr/local/bin
 LOGDIR       = /var/mobile/Library/Logs
 
+SHELL        = $(JBREV)/bin/sh
 SCRIPT       = roblox-watchdog.sh
 PIDFILE      = $(LOGDIR)/roblox-watchdog.pid
 
