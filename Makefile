@@ -1,73 +1,39 @@
-##############################################################################
-# пути и имена
-##############################################################################
-JBREV      ?= /var/jb
-BINDIR      = $(JBREV)/usr/local/bin
-LOGDIR      = /var/mobile/Library/Logs
-SCRIPT      = roblox-watchdog.sh
-PIDFILE     = $(LOGDIR)/roblox-watchdog.pid
-LOGFILE     = $(LOGDIR)/roblox-watchdog.log
+###############################################################################
+#  paths – меняй спокойно, если нужно
+###############################################################################
+JBREV       ?= /var/jb
+SHELL        = $(JBREV)/bin/sh
+PREFIX      ?= /var/mobile/roblox-watchdog        # где хранить файлы
+BINDIR       = $(PREFIX)
+LOGFILE      = /var/mobile/Library/Logs/roblox-watchdog.log
+SCRIPT       = roblox-watchdog.sh
 
-SCRIPT_DST  = $(BINDIR)/$(SCRIPT)
+###############################################################################
+#  make targets
+###############################################################################
+.PHONY: start stop status restart
 
-SHELL       = $(JBREV)/bin/sh
-INSTALL     = $(JBREV)/usr/bin/install
-MKDIR       = $(JBREV)/usr/bin/mkdir -p
-NOHUP       = $(JBREV)/usr/bin/nohup
-KILL        = /bin/kill
-TAIL        = $(JBREV)/usr/bin/tail
-
-.PHONY: all install start stop restart status uninstall log
-
-all:
-	@echo "Run 'make install' or 'make start'"
-
-##############################################################################
-# установка/обновление скрипта
-##############################################################################
-install: $(SCRIPT)
-	@$(MKDIR) $(BINDIR) $(LOGDIR)
-	$(INSTALL) -m755 $(SCRIPT) $(SCRIPT_DST)
-	@echo "✓ script installed to $(SCRIPT_DST)"
-
-##############################################################################
-# запуск / остановка
-##############################################################################
-start: install
-	@if [ -f $(PIDFILE) ] && kill -0 "$$(cat $(PIDFILE))" 2>/dev/null; then \
-		echo "Watchdog уже запущен (pid $$(cat $(PIDFILE)))"; \
-	else \
-		$(NOHUP) $(SCRIPT_DST) >>$(LOGFILE) 2>&1 & \
-		echo $$! > $(PIDFILE); \
-		echo "✓ watchdog started (pid $$!)"; \
-	fi
+start: $(SCRIPT)
+	@mkdir -p $(BINDIR)
+	@cp -f $(SCRIPT) $(BINDIR)/
+	@echo "➜  starting watchdog (log → $(LOGFILE))"
+	@nohup $(BINDIR)/$(SCRIPT) >>$(LOGFILE) 2>&1 & 
 
 stop:
-	@if [ -f $(PIDFILE) ] && kill -0 "$$(cat $(PIDFILE))" 2>/dev/null; then \
-		$(KILL) "$$(cat $(PIDFILE))"; \
-		rm -f $(PIDFILE); \
-		echo "✓ watchdog stopped"; \
-	else \
-		echo "Watchdog не запущен"; \
+	@pids=$$(ps -eo pid,args | grep '[r]oblox-watchdog.sh' | awk '{print $$1}'); \
+	if [ -n "$$pids" ]; then \
+	    echo "➜  killing $$pids";                   \
+	    kill $$pids;                                \
+	else                                            \
+	    echo "➜  watchdog not running";             \
+	fi
+
+status:
+	@pids=$$(ps -eo pid,args | grep '[r]oblox-watchdog.sh' | awk '{print $$1}'); \
+	if [ -n "$$pids" ]; then \
+	    echo "✓ running – pids: $$pids";           \
+	else                                            \
+	    echo "✗ not running";                      \
 	fi
 
 restart: stop start
-status:
-	@if [ -f $(PIDFILE) ] && kill -0 "$$(cat $(PIDFILE))" 2>/dev/null; then \
-		echo "Watchdog работает (pid $$(cat $(PIDFILE)))"; \
-	else \
-		echo "Watchdog не запущен"; \
-	fi
-
-##############################################################################
-# удаление
-##############################################################################
-uninstall: stop
-	@rm -f $(SCRIPT_DST) $(LOGFILE)
-	@echo "✓ watchdog removed"
-
-##############################################################################
-# просмотр лога вживую
-##############################################################################
-log:
-	@$(TAIL) -f $(LOGFILE)

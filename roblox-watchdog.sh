@@ -16,9 +16,15 @@ BUNDLE="$(uicache -l | grep -i roblox | cut -d ' ' -f1)"
 PLACE=142823291
 INTERVAL=60
 
+echo "Start with BUNDLE: $BUNDLE"
+
 while true; do
     if ! is_roblox_running "$BUNDLE"; then
         uiopen "roblox://placeId=${PLACE}"
+        echo "Start Roblox"
+    else
+        echo "Roblox is already running"
     fi
+
     sleep "$INTERVAL"
 done
