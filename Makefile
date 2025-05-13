@@ -19,7 +19,7 @@ stop:
 	@pids=$$(ps -eo pid,args | grep '[r]oblox-watchdog.sh' | awk '{print $$1}'); \
 	if [ -n "$$pids" ]; then \
 	    echo "➜  killing $$pids";                   \
-	    kill $$pids;                                \
+	    kill -1 $$pids;                             \
 	else                                            \
 	    echo "➜  watchdog not running";             \
 	fi
