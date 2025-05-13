@@ -3,7 +3,7 @@
 ###############################################################################
 JBREV        ?= /var/jb
 BINDIR        = $(JBREV)/usr/local/bin
-AGENTDIR      = /var/mobile/Library/LaunchAgents        # LaunchAgent = per-user
+AGENTDIR      = /var/mobile/Library/LaunchAgents
 LOGDIR        = /var/mobile/Library/Logs
 
 SCRIPT        = roblox-watchdog.sh
