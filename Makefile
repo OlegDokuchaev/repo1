@@ -16,12 +16,12 @@ install: $(SCRIPT) $(PLIST)
 	install -m 755   $(SCRIPT) $(SCRIPT_DEST)
 	install -m 644   $(PLIST) $(PLIST_DEST)
 	launchctl load   $(PLIST_DEST)
-	@echo "✅  Autorestart installed and loaded."
+	@echo "✅ Autorestart installed and loaded."
 
 uninstall: $(SCRIPT_DEST) $(PLIST_DEST)
-	- launchctl unload $(PLIST_DEST)
-	- rm -f $(PLIST_DEST) $(SCRIPT_DEST)
-	@echo "🗑️  Autorestart removed."
+	launchctl unload $(PLIST_DEST)
+	rm -f $(PLIST_DEST) $(SCRIPT_DEST)
+	@echo "🗑️ Autorestart removed."
 
 logtail:
 	tail -f /var/log/roblox-autorestart.out
