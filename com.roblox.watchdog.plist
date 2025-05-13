@@ -3,18 +3,22 @@
  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>Label</key>            <string>com.roblox.watchdog</string>
+    <key>Label</key>             <string>com.roblox.watchdog</string>
+
     <key>ProgramArguments</key>
     <array>
         <string>/var/jb/usr/local/bin/roblox-watchdog.sh</string>
     </array>
 
-    <key>StartInterval</key>    <integer>60</integer>
-    <key>RunAtLoad</key>        <true/>
+    <!-- Run at boot and every 60 s -->
+    <key>RunAtLoad</key>         <true/>
+    <key>StartInterval</key>     <integer>60</integer>
 
-    <key>UserName</key>         <string>mobile</string>
+    <!-- GUI user context -->
+    <key>LimitLoadToSessionType</key> <string>Aqua</string>
 
-    <key>StandardOutPath</key>  <string>/var/mobile/Library/Logs/roblox-watchdog.log</string>
-    <key>StandardErrorPath</key><string>/var/mobile/Library/Logs/roblox-watchdog.log</string>
+    <!-- send output to unified logging – files no longer needed -->
+    <key>StandardOutPath</key>   <string>/dev/null</string>
+    <key>StandardErrorPath</key> <string>/dev/null</string>
 </dict>
 </plist>

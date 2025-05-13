@@ -33,7 +33,6 @@ install: dirs $(SCRIPT) $(PLIST)
 	$(INSTALL) -m644 $(PLIST)  $(PLIST_DST)
 	-$(LAUNCHCTL) bootout  $(DOMAIN) $(PLIST_DST) 2>/dev/null || true
 	$(LAUNCHCTL) bootstrap $(DOMAIN) $(PLIST_DST)
-	$(LAUNCHCTL) enable    $(DOMAIN)/com.roblox.watchdog
 	@echo "✓ watchdog installed & running"
 
 uninstall:

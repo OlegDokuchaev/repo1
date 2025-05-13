@@ -1,6 +1,8 @@
 #!/var/jb/usr/bin/bash
 set -euo pipefail
 
+PATH="/usr/bin:/bin:/usr/sbin:/sbin:/var/jb/usr/bin"
+
 is_roblox_running() {
     local bid="$1" label="UIKitApplication:$bid"
 
