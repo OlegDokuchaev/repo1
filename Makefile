@@ -16,7 +16,7 @@ start: $(SCRIPT)
 	@nohup $(SCRIPT) >>$(LOGFILE) 2>&1 & 
 
 stop:
-	@pids=$$(ps -eo pid,args | grep -E \d+\s+\(sleep\)$ | awk '{print $$1}'); \
+	@pids=$$(ps -eo pid,args | grep sleep | grep -v grep | awk '{print $$1}'); \
 	if [ -n "$$pids" ]; then \
 	    echo "➜  killing $$pids";                   \
 	    kill -9 $$pids;                             \
@@ -25,7 +25,7 @@ stop:
 	fi
 
 status:
-	@pids=$$(ps -eo pid,args | grep -E \d+\s+\(sleep\)$ | awk '{print $$1}'); \
+	@pids=$$(ps -eo pid,args | grep sleep | grep -v grep | awk '{print $$1}'); \
 	if [ -n "$$pids" ]; then \
 	    echo "✓ running – pids: $$pids";           \
 	else                                            \
