@@ -23,7 +23,7 @@ stop:
 		pid=$$(cat $(PID_FILE)); \
 		if ps -p $$pid > /dev/null 2>&1; then \
 			echo "➜  killing $$pid"; \
-			sudo kill -15 $$pid; \
+			sudo kill -9 $$pid; \
 		else \
 			echo "➜  no running process with PID $$pid"; \
 		fi \
