@@ -8,26 +8,33 @@ PLIST       := com.roblox.watchdog.plist
 SCRIPT_DEST := $(BINDIR)/$(SCRIPT)
 PLIST_DEST  := $(LDIR)/$(PLIST)
 
-.PHONY: all install uninstall reload logtail
+SHELL       := $(JBREV)/bin/sh
+INSTALL     := $(JBREV)/usr/bin/install
+LAUNCHCTL   := /bin/launchctl
+
+.PHONY: all dirs install uninstall reload logtail
 
 all:
 	@echo "Nothing to build – use 'make install'"
 
-install: $(SCRIPT) $(PLIST)
-	install -m 755    $(SCRIPT) $(SCRIPT_DEST)
-	install -m 644    $(PLIST) $(PLIST_DEST)
-	launchctl load -w $(PLIST_DEST)
+dirs:
+	$(INSTALL) -d -m755 $(BINDIR) $(LDIR)
+
+install: dirs $(SCRIPT) $(PLIST)
+	$(INSTALL) -m755 $(SCRIPT) $(SCRIPT_DEST)
+	$(INSTALL) -m644 $(PLIST)  $(PLIST_DEST)
+	$(LAUNCHCTL) load -w $(PLIST_DEST)
 	@echo "Roblox watchdog installed and loaded."
 
-uninstall: $(SCRIPT_DEST) $(PLIST_DEST)
-	launchctl unload -w $(PLIST_DEST)
-	rm -f $(PLIST_DEST) $(SCRIPT_DEST)
+uninstall:
+	-$(LAUNCHCTL) unload -w $(PLIST_DEST)
+	-rm -f $(PLIST_DEST) $(SCRIPT_DEST)
 	@echo "Roblox watchdog removed."
 
-reload: $(PLIST_DEST)
-	launchctl unload -w $(PLIST_DEST);
-	launchctl load   -w $(PLIST_DEST);
-	@echo "Roblox watchdog reloaded.";
+reload:
+	$(LAUNCHCTL) unload -w $(PLIST_DEST)
+	$(LAUNCHCTL)  load -w $(PLIST_DEST)
+	@echo "Roblox watchdog reloaded."
 
 logtail:
 	tail -f /var/log/roblox-watchdog.out
