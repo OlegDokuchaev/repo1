@@ -14,7 +14,7 @@ PID_FILE     = save_pid.txt
 
 start: $(SCRIPT)
 	@echo "➜  starting watchdog"
-	@nohup $(SCRIPT) > $(LOGFILE) >2&1 &
+	@nohup $(SCRIPT) >2&1 &
 	@echo $! > $(PID_FILE)
 
 stop:
