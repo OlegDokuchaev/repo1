@@ -12,20 +12,20 @@ SCRIPT       = roblox-watchdog.sh
 .PHONY: start stop status restart
 
 start: $(SCRIPT)
-	@echo "➜  starting watchdog (log → $(LOGFILE))"
+	@echo "➜  starting watchdog"
 	@nohup $(SCRIPT) >>$(LOGFILE) 2>&1 & 
 
 stop:
-	@pids=$$(ps -eo pid,args | grep '[r]oblox-watchdog.sh' | awk '{print $$1}'); \
+	@pids=$$(ps -eo pid,args | grep 'roblox-watchdog' | awk '{print $$1}'); \
 	if [ -n "$$pids" ]; then \
 	    echo "➜  killing $$pids";                   \
-	    kill -1 $$pids;                             \
+	    kill -9 $$pids;                             \
 	else                                            \
 	    echo "➜  watchdog not running";             \
 	fi
 
 status:
-	@pids=$$(ps -eo pid,args | grep '[r]oblox-watchdog.sh' | awk '{print $$1}'); \
+	@pids=$$(ps -eo pid,args | grep 'roblox-watchdog' | awk '{print $$1}'); \
 	if [ -n "$$pids" ]; then \
 	    echo "✓ running – pids: $$pids";           \
 	else                                            \
