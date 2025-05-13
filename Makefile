@@ -10,7 +10,7 @@ PLIST_DEST  := $(LDIR)/$(PLIST)
 
 SHELL       := $(JBREV)/bin/sh
 INSTALL     := $(JBREV)/usr/bin/install
-LAUNCHCTL   := /bin/launchctl
+LAUNCHCTL   := $(JBREV)/usr/bin/launchctl
 
 .PHONY: all dirs install uninstall reload logtail
 
