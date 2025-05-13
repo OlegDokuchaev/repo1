@@ -15,7 +15,7 @@ PLIST_DST   = $(AGENTDIR)/$(PLIST)
 # tools
 ###############################################################################
 INSTALL     = $(JBREV)/usr/bin/install
-LAUNCHCTL   = /bin/launchctl          # system one works fine
+LAUNCHCTL   = $(JBREV)/usr/bin/launchctl
 UID         := $(shell id -u mobile)
 DOMAIN      = gui/$(UID)
 
