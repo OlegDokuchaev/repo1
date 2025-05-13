@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/var/jb/usr/bin/env bash
 set -euo pipefail
 
 is_roblox_running() {
@@ -18,9 +18,9 @@ PLACE=142823291
 
 if ! is_roblox_running "$BUNDLE"; then
     /var/jb/usr/bin/uiopen "roblox://placeId=${PLACE}"
-    logger -t roblox-watchdog "Roblox relaunched"
+    echo "Roblox relaunched"
 else
-    logger -t roblox-watchdog "Roblox is already launched"
+    echo "Roblox is already launched"
 fi
 
 exit 0

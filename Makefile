@@ -38,3 +38,4 @@ reload:
 
 logtail:
 	tail -f /var/log/roblox-watchdog.out
+	tail -f /var/log/roblox-watchdog.err

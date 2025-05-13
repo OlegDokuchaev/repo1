@@ -15,5 +15,8 @@
 
   <!-- mobile достаточно; root не нужен -->
   <key>UserName</key>        <string>mobile</string>
+
+  <key>StandardOutPath</key><string>/var/log/roblox-watchdog.out</string>
+  <key>StandardErrorPath</key><string>/var/log/roblox-watchdog.err</string>
  </dict>
 </plist>
