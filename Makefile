@@ -14,6 +14,7 @@ PLIST_DST   = $(AGENTDIR)/$(PLIST)
 ###############################################################################
 # tools
 ###############################################################################
+SHELL        =  $(JBREV)/bin/sh
 INSTALL     = $(JBREV)/usr/bin/install
 LAUNCHCTL   = $(JBREV)/usr/bin/launchctl
 UID         := $(shell id -u mobile)
