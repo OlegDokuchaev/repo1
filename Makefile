@@ -15,23 +15,33 @@ PID_FILE     = save_pid.txt
 start: $(SCRIPT)
 	@echo "➜  starting watchdog"
 	@nohup $(SCRIPT) >$(LOGFILE) 2>&1 & \
-	echo $$! >$(PID_FILE)
+	pid=$$!; \
+	echo $$pid >$(PID_FILE)
 
 stop:
-	@pids=$$(ps -eo pid,args | grep "$(cat $(PID_FILE))" | awk '{print $$1}'); \
-	if [ -n "$$pids" ]; then \
-	    echo "➜  killing $$pids";                   \
-	    sudo kill $$pids;                             \
-	else                                            \
-	    echo "➜  watchdog not running";             \
+	@if [ -f $(PID_FILE) ]; then \
+		pid=$$(cat $(PID_FILE)); \
+		if kill -0 $$pid 2>/dev/null; then \
+			echo "➜  killing $$pid"; \
+			sudo kill $$pid && rm -f $(PID_FILE); \
+		else \
+			echo "➜  no running process with PID $$pid"; \
+			rm -f $(PID_FILE); \
+		fi \
+	else \
+		echo "➜  no PID file, nothing to stop"; \
 	fi
 
 status:
-	@pids=$$(ps -eo pid,args | grep "$(cat $(PID_FILE))" | awk '{print $$1}'); \
-	if [ -n "$$pids" ]; then \
-	    echo "✓ running – pids: $$pids";           \
-	else                                            \
-	    echo "✗ not running";                      \
+	@if [ -f $(PID_FILE) ]; then \
+		pid=$$(cat $(PID_FILE)); \
+		if ps -p $$pid > /dev/null 2>&1; then \
+			echo "✓ running – pid: $$pid"; \
+		else \
+			echo "✗ not running (pid $$pid not found)"; \
+		fi \
+	else \
+		echo "✗ no PID file, process not started"; \
 	fi
 
 restart: stop start
