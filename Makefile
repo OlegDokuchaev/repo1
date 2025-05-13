@@ -21,12 +21,11 @@ start: $(SCRIPT)
 stop:
 	@if [ -f $(PID_FILE) ]; then \
 		pid=$$(cat $(PID_FILE)); \
-		if kill -0 $$pid 2>/dev/null; then \
+		if ps -p $$pid > /dev/null 2>&1; then \
 			echo "➜  killing $$pid"; \
 			sudo kill $$pid && rm -f $(PID_FILE); \
 		else \
 			echo "➜  no running process with PID $$pid"; \
-			rm -f $(PID_FILE); \
 		fi \
 	else \
 		echo "➜  no PID file, nothing to stop"; \
