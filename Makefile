@@ -10,6 +10,7 @@ SCRIPT_DEST  =  $(BINDIR)/$(SCRIPT)
 PLIST_DEST   =  $(LDIR)/$(PLIST)
 
 ### Tools #####################################################################
+SHELL        =  $(JBREV)/bin/sh
 INSTALL      =  $(JBREV)/usr/bin/install
 LAUNCHCTL    =  $(JBREV)/usr/bin/launchctl
 DOMAIN       =  system
