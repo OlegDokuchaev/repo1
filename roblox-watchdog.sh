@@ -1,4 +1,4 @@
-#!/var/jb/usr/bin/env bash
+#!/var/jb/usr/bin/bash
 set -euo pipefail
 
 is_roblox_running() {
@@ -6,8 +6,6 @@ is_roblox_running() {
   LABEL_PREFIX="UIKitApplication:$BID"
 
   read pid status <<< "$(/var/jb/usr/bin/launchctl list | /var/jb/usr/bin/awk -v lbl="$LABEL_PREFIX" '$3 ~ lbl {print $1,$2}')"
-  echo "$pid"
-  echo "$status"
 
   if [[ "$pid" =~ ^[0-9]+$ ]] && [[ "$status" == 0 ]]; then
         return 0
@@ -20,9 +18,9 @@ PLACE=142823291
 
 if ! is_roblox_running "$BUNDLE"; then
     /var/jb/usr/bin/uiopen "roblox://placeId=${PLACE}"
-    echo "Roblox relaunched"
+    logger -t roblox-watchdog "Roblox (re)launched"
 else
-    echo "Roblox is already launched"
+    logger -t roblox-watchdog "Roblox already running"
 fi
 
 exit 0

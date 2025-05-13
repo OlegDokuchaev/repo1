@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+ "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
  <dict>
   <key>Label</key>           <string>com.roblox.watchdog</string>
@@ -9,14 +10,13 @@
    <string>/var/jb/usr/local/bin/roblox-watchdog.sh</string>
   </array>
 
-  <!-- Проверять каждые 60 секунд -->
+  <!-- каждые 60 с -->
   <key>StartInterval</key>   <integer>60</integer>
   <key>RunAtLoad</key>       <true/>
 
-  <!-- mobile достаточно; root не нужен -->
   <key>UserName</key>        <string>mobile</string>
 
-  <key>StandardOutPath</key><string>/var/log/roblox-watchdog.out</string>
-  <key>StandardErrorPath</key><string>/var/log/roblox-watchdog.err</string>
+  <key>StandardOutPath</key> <string>/var/mobile/Library/Logs/roblox-watchdog/watchdog.out</string>
+  <key>StandardErrorPath</key><string>/var/mobile/Library/Logs/roblox-watchdog/watchdog.err</string>
  </dict>
 </plist>
