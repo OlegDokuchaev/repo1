@@ -14,7 +14,6 @@ is_roblox_running() {
 
 BUNDLE="$(uicache -l | grep -i roblox | cut -d ' ' -f1)"
 PLACE=142823291
-echo "$BUNDLE"
 
 if ! is_roblox_running "$BUNDLE"; then
     uiopen "roblox://placeId=${PLACE}"
