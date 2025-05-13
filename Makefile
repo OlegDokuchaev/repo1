@@ -13,6 +13,7 @@ PLIST_DEST   =  $(LDIR)/$(PLIST)
 SHELL        =  $(JBREV)/bin/sh
 INSTALL      =  $(JBREV)/usr/bin/install
 LAUNCHCTL    =  $(JBREV)/usr/bin/launchctl
+LABEL        =  com.roblox.watchdog
 DOMAIN       =  system
 
 .PHONY: all dirs install uninstall reload log
