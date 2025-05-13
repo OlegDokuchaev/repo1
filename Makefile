@@ -1,6 +1,8 @@
 ###############################################################################
 #  paths – меняй спокойно, если нужно
 ###############################################################################
+JBREV        ?= /var/jb
+SHELL        = $(JBREV)/bin/sh
 LOGFILE      = roblox-watchdog.log
 SCRIPT       = roblox-watchdog.sh
 PID_FILE     = save_pid.txt
@@ -12,7 +14,7 @@ PID_FILE     = save_pid.txt
 
 start: $(SCRIPT)
 	@echo "➜  starting watchdog"
-	@nohup $(SCRIPT) > $(LOGFILE) >2&1 && @echo $! > $(PID_FILE) &
+	@nohup $(SCRIPT) > $(LOGFILE) >2&1 && @echo $! > $(PID_FILE)
 
 stop:
 	@pids=$$(ps -eo pid,args | grep "$(cat $(PID_FILE))" | awk '{print $$1}'); \
