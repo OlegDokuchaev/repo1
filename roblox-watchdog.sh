@@ -18,9 +18,9 @@ PLACE=142823291
 
 if ! is_roblox_running "$BUNDLE"; then
     uiopen "roblox://placeId=${PLACE}"
-    logger -t roblox-autorestart "Roblox relaunched"
+    logger -t roblox-watchdog "Roblox relaunched"
 else
-    logger -t roblox-autorestart "Roblox is already launched"
+    logger -t roblox-watchdog "Roblox is already launched"
 fi
 
 exit 0

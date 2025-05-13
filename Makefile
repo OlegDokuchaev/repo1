@@ -1,11 +1,12 @@
-PREFIX      ?= /usr/local
-LAUNCHDIR   = /Library/LaunchDaemons
+JBREV       ?= /var/jb
+BINDIR      := $(JBREV)/usr/local/bin
+LDIR        := $(JBREV)/Library/LaunchDaemons
 
-SCRIPT      = autorestart.sh
-PLIST       = com.example.roblox.autorestart.plist
+SCRIPT      := roblox-watchdog.sh
+PLIST       := com.roblox.watchdog.plist
 
-SCRIPT_DEST = $(PREFIX)/bin/$(SCRIPT)
-PLIST_DEST  = $(LAUNCHDIR)/$(PLIST)
+SCRIPT_DEST := $(BINDIR)/$(SCRIPT)
+PLIST_DEST  := $(LDIR)/$(PLIST)
 
 .PHONY: all install uninstall reload logtail
 
@@ -16,17 +17,17 @@ install: $(SCRIPT) $(PLIST)
 	install -m 755    $(SCRIPT) $(SCRIPT_DEST)
 	install -m 644    $(PLIST) $(PLIST_DEST)
 	launchctl load -w $(PLIST_DEST)
-	@echo "Autorestart installed and loaded."
+	@echo "Roblox watchdog installed and loaded."
 
 uninstall: $(SCRIPT_DEST) $(PLIST_DEST)
 	launchctl unload -w $(PLIST_DEST)
 	rm -f $(PLIST_DEST) $(SCRIPT_DEST)
-	@echo "Autorestart removed."
+	@echo "Roblox watchdog removed."
 
 reload: $(PLIST_DEST)
 	launchctl unload -w $(PLIST_DEST);
 	launchctl load   -w $(PLIST_DEST);
-	@echo "Autorestart reloaded.";
+	@echo "Roblox watchdog reloaded.";
 
 logtail:
-	tail -f /var/log/roblox-autorestart.out
+	tail -f /var/log/roblox-watchdog.out
