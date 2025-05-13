@@ -1,13 +1,5 @@
 #!/bin/bash
 
-# ---------- configurable ----------
-BUNDLE="$(uicache -l | grep -i roblox | cut -d ' ' -f1)"
-PLACE=142823291
-INTERVAL=60
-LOGTAG="roblox-watchdog"
-PIDFILE="/var/mobile/Library/Logs/${LOGTAG}.pid"
-# ----------------------------------
-
 is_roblox_running() {
   local BID="$1"
   LABEL_PREFIX="UIKitApplication:$BID"
@@ -20,10 +12,9 @@ is_roblox_running() {
   return 1
 }
 
-# ────────────────────────────────────────────────────────────────────────────────
-
-echo $$ > "$PIDFILE"
-trap 'rm -f "$PIDFILE"' EXIT INT TERM
+BUNDLE="$(uicache -l | grep -i roblox | cut -d ' ' -f1)"
+PLACE=142823291
+INTERVAL=60
 
 while true; do
     if ! is_roblox_running "$BUNDLE"; then

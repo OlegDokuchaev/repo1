@@ -1,59 +1,73 @@
-###############################################################################
-# paths & filenames
-###############################################################################
-JBREV       ?= /var/jb
-BINDIR       = $(JBREV)/usr/local/bin
-LOGDIR       = /var/mobile/Library/Logs
+##############################################################################
+# пути и имена
+##############################################################################
+JBREV      ?= /var/jb
+BINDIR      = $(JBREV)/usr/local/bin
+LOGDIR      = /var/mobile/Library/Logs
+SCRIPT      = roblox-watchdog.sh
+PIDFILE     = $(LOGDIR)/roblox-watchdog.pid
+LOGFILE     = $(LOGDIR)/roblox-watchdog.log
 
-SHELL        = $(JBREV)/bin/sh
-SCRIPT       = roblox-watchdog.sh
-PIDFILE      = $(LOGDIR)/roblox-watchdog.pid
+SCRIPT_DST  = $(BINDIR)/$(SCRIPT)
 
-###############################################################################
-# tools
-###############################################################################
-INSTALL      = $(JBREV)/usr/bin/install
-NOHUP        = $(JBREV)/usr/bin/nohup   # present in Dopamine
-PGREP        = $(JBREV)/usr/bin/pgrep
-TAIL         = $(JBREV)/usr/bin/tail
+SHELL       = $(JBREV)/bin/sh
+INSTALL     = $(JBREV)/usr/bin/install
+MKDIR       = $(JBREV)/usr/bin/mkdir -p
+NOHUP       = $(JBREV)/usr/bin/nohup
+KILL        = /bin/kill
+TAIL        = $(JBREV)/usr/bin/tail
 
-###############################################################################
-# targets
-###############################################################################
-.PHONY: all start stop status log reinstall
+.PHONY: all install start stop restart status uninstall log
 
-all: start                 ## default action
+all:
+	@echo "Run 'make install' or 'make start'"
 
-start: $(BINDIR)/$(SCRIPT)
-	@echo "▶ starting watchdog …"
-	$(NOHUP) $< >/dev/null 2>&1 &
-	@echo $$! > $(PIDFILE)
+##############################################################################
+# установка/обновление скрипта
+##############################################################################
+install: $(SCRIPT)
+	@$(MKDIR) $(BINDIR) $(LOGDIR)
+	$(INSTALL) -m755 $(SCRIPT) $(SCRIPT_DST)
+	@echo "✓ script installed to $(SCRIPT_DST)"
+
+##############################################################################
+# запуск / остановка
+##############################################################################
+start: install
+	@if [ -f $(PIDFILE) ] && kill -0 "$$(cat $(PIDFILE))" 2>/dev/null; then \
+		echo "Watchdog уже запущен (pid $$(cat $(PIDFILE)))"; \
+	else \
+		$(NOHUP) $(SCRIPT_DST) >>$(LOGFILE) 2>&1 & \
+		echo $$! > $(PIDFILE); \
+		echo "✓ watchdog started (pid $$!)"; \
+	fi
 
 stop:
-	@if [ -f $(PIDFILE) ]; then \
-	    kill "$$(cat $(PIDFILE))" 2>/dev/null || true; \
-	    rm -f $(PIDFILE); \
-	    echo "■ watchdog stopped"; \
+	@if [ -f $(PIDFILE) ] && kill -0 "$$(cat $(PIDFILE))" 2>/dev/null; then \
+		$(KILL) "$$(cat $(PIDFILE))"; \
+		rm -f $(PIDFILE); \
+		echo "✓ watchdog stopped"; \
 	else \
-	    echo "■ no PID-file → nothing to stop"; \
+		echo "Watchdog не запущен"; \
 	fi
 
+restart: stop start
 status:
 	@if [ -f $(PIDFILE) ] && kill -0 "$$(cat $(PIDFILE))" 2>/dev/null; then \
-	    echo "✓ watchdog running (PID $$(cat $(PIDFILE))) [pidfile]"; \
-	elif $(PGREP) -f $(SCRIPT) >/dev/null; then \
-	    echo "✓ watchdog running (found via pgrep)"; \
+		echo "Watchdog работает (pid $$(cat $(PIDFILE)))"; \
 	else \
-	    echo "✗ watchdog NOT running"; \
+		echo "Watchdog не запущен"; \
 	fi
 
+##############################################################################
+# удаление
+##############################################################################
+uninstall: stop
+	@rm -f $(SCRIPT_DST) $(LOGFILE)
+	@echo "✓ watchdog removed"
+
+##############################################################################
+# просмотр лога вживую
+##############################################################################
 log:
-	@echo "— live log —"
-	log stream --predicate 'eventMessage CONTAINS "roblox-watchdog"' --style syslog
-
-# (re)install the script into $BINDIR
-$(BINDIR)/$(SCRIPT): $(SCRIPT)
-	$(INSTALL) -d -m755 $(BINDIR)
-	$(INSTALL) -m755 $< $@
-
-reinstall: stop $(BINDIR)/$(SCRIPT) start
+	@$(TAIL) -f $(LOGFILE)
