@@ -1,32 +1,51 @@
-//  Tweak.xm
-//  rbxurlpatch 1.0-3  (iOS 15 rootless / Dopamine)
 //
-//  Цель: внутри процесса Roblox заменить схемы robloxN:// → roblox://,
-//  чтобы deep-link-параметры placeId/launchData работали.
+//  rbxurlpatch 1.0-4
+//  (iOS 15 rootless / Dopamine)
+//
+//  Меняет robloxN:// на roblox:// и выводит расширенный лог.
+//
 
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
-#import <os/log.h>          // unified logging (iOS 10+)
-#import <substrate.h>       // ElleKit/Substrate runtime
+#import <os/log.h>          // unified logging  [oai_citation:0‡Apple Developer](https://developer.apple.com/documentation/os/generating-log-messages-from-your-code?utm_source=chatgpt.com) [oai_citation:1‡Apple Developer](https://developer.apple.com/documentation/os/os_log?utm_source=chatgpt.com)
+#import <substrate.h>       // ElleKit / MobileSubstrate runtime
+#import <sys/stat.h>
 
-#pragma mark -- helpers -------------------------------------------------------
+#pragma mark – файл-лог --------------------------------------------------------
 
-/// Запись в резервный текстовый лог (на случай, если unified-log недоступен)
 static void RBXFileLog(NSString *line)
 {
     static NSFileHandle *fh;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        NSString *path = @"/var/mobile/Library/Logs/rbxurlpatch.log";
+        NSString *dir = @"/var/mobile/Library/Logs";
+        NSString *path = [dir stringByAppendingPathComponent:@"rbxurlpatch.log"];
+
+        /* создаём каталог, если его стёрли */
+        mkdir(dir.UTF8String, 0755);
+
         [[NSFileManager defaultManager] createFileAtPath:path contents:nil attributes:nil];
         fh = [NSFileHandle fileHandleForWritingAtPath:path];
         [fh seekToEndOfFile];
     });
-    [fh writeData:[[line stringByAppendingString:@"\n"]
-                   dataUsingEncoding:NSUTF8StringEncoding]];
+
+    NSString *tsLine = [NSString stringWithFormat:@"%@\n", line];
+    [fh writeData:[tsLine dataUsingEncoding:NSUTF8StringEncoding]];
 }
 
-/// Если схема вида roblox1/roblox2 … — меняем на «roblox», сохраняя всё остальное.
+static inline void RBXLogBoth(NSString *fmt, ...)
+{
+    va_list va;
+    va_start(va, fmt);
+    NSString *s = [[NSString alloc] initWithFormat:fmt arguments:va];
+    va_end(va);
+
+    os_log(OS_LOG_DEFAULT, "%{public}s", s.UTF8String);     // unified log  [oai_citation:2‡Medium](https://medium.com/%40vinodh_36508/logging-made-easy-exploring-apples-oslogs-6a9c6e239bf7?utm_source=chatgpt.com)
+    RBXFileLog(s);                                          // резервный файл
+}
+
+#pragma mark – замена схемы ----------------------------------------------------
+
 static NSURL *RBXFixScheme(NSURL *url)
 {
     if (!url) return url;
@@ -34,6 +53,7 @@ static NSURL *RBXFixScheme(NSURL *url)
     static NSRegularExpression *re;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
+        /* roblox1, roblox2, … */
         re = [NSRegularExpression regularExpressionWithPattern:@"^roblox\\d+$"
                                                        options:0 error:nil];
     });
@@ -42,43 +62,50 @@ static NSURL *RBXFixScheme(NSURL *url)
     if ([re firstMatchInString:scheme options:0
                          range:NSMakeRange(0, scheme.length)]) {
 
-        NSURLComponents *c = [NSURLComponents componentsWithURL:url
-                                         resolvingAgainstBaseURL:NO];
+        NSURLComponents *c =
+            [NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];
         c.scheme = @"roblox";
         NSURL *patched = c.URL ?: url;
 
-        /* ----- двойное логирование ----- */
-        NSString *msg = [NSString stringWithFormat:@"roblox-scheme patched: %@ → %@",
-                         url.absoluteString, patched.absoluteString];
-        os_log(OS_LOG_DEFAULT, "%{public}s", msg.UTF8String);   // unified log
-        RBXFileLog(msg);                                        // резервный файл
-
+        RBXLogBoth(@"patched URL: %@ → %@", url.absoluteString, patched.absoluteString);
         return patched;
     }
     return url;
 }
 
-#pragma mark -- hooks ---------------------------------------------------------
+#pragma mark – инъекционный маркер ---------------------------------------------
 
-/* 1. AppDelegate-маршрут (iOS 11+) */
+__attribute__((constructor))
+static void RBXLoaded(void)
+{
+    RBXLogBoth(@"▶︎ rbxurlpatch.dylib injected ✔︎");
+}
+
+#pragma mark – хуки ------------------------------------------------------------
+
+/* 1. UIApplicationDelegate (iOS 11+) */
 %hook NSObject
 - (BOOL)application:(UIApplication *)app
             openURL:(NSURL *)url
             options:(NSDictionary<UIApplicationOpenURLOptionsKey,id> *)opts
 {
+    RBXLogBoth(@"[AppDelegate] incoming URL = %@", url.absoluteString);
     return %orig(app, RBXFixScheme(url), opts);
 }
 %end
 
-/* 2. SceneDelegate-маршрут (iOS 13+) */
+/* 2. UISceneDelegate (iOS 13+) */
 %hook UIScene
 - (void)openURLContexts:(NSSet<UIOpenURLContext *> *)contexts
 {
+    RBXLogBoth(@"[SceneDelegate] openURLContexts count = %lu",
+               (unsigned long)contexts.count);          // API docs  [oai_citation:3‡Apple Developer](https://developer.apple.com/documentation/uikit/uiscenedelegate/scene%28_%3Aopenurlcontexts%3A%29?utm_source=chatgpt.com)
+
     for (UIOpenURLContext *ctx in contexts) {
+        RBXLogBoth(@"    original → %@", ctx.URL.absoluteString);
         NSURL *patched = RBXFixScheme(ctx.URL);
         if (patched != ctx.URL) {
-            /* KVC-обход readonly-свойства URL.
-               initWithURL:options: у UIOpenURLContext отсутствует. */
+            /* URL — read-only; KVC-обход приемлем для твиков  [oai_citation:4‡Apple Developer](https://developer.apple.com/documentation/uikit/uiopenurlcontext/url?language=objc&utm_source=chatgpt.com) */
             [ctx setValue:patched forKey:@"URL"];
         }
     }
@@ -86,12 +113,13 @@ static NSURL *RBXFixScheme(NSURL *url)
 }
 %end
 
-/* 3. Исходящие вызовы внутри Roblox (опционально, но полезно) */
+/* 3. Вызовы openURL _изнутри_ Roblox */
 %hook UIApplication
 - (void)openURL:(NSURL *)url
-        options:(NSDictionary<NSString *, id> *)o
+        options:(NSDictionary<NSString*,id> *)o
 completionHandler:(void (^)(BOOL))h
 {
+    RBXLogBoth(@"[UIApplication] will open %@", url.absoluteString);
     %orig(RBXFixScheme(url), o, h);
 }
 %end
