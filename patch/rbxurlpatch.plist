@@ -4,16 +4,6 @@
 <plist version="1.0">
 <dict>
   <key>Filter</key>
-  <dict>
-    <key>Bundles</key>
-    <array>
-      <!-- все ваши клоны Roblox: -->
-      <string>com.roblox.robloxmobile</string>
-      <string>com.roblox.robloxmobile1</string>
-      <string>com.roblox.robloxmobile2</string>
-      <!-- Плюс SpringBoard, если хочется видеть лог при тапе по иконке -->
-      <string>com.apple.springboard</string>
-    </array>
-  </dict>
+  <dict/>   <!-- пустой словарь разрешает всё -->
 </dict>
 </plist>
