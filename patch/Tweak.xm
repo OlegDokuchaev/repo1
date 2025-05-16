@@ -1,35 +1,69 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
-#import <substrate.h>        // brought in by ElleKit at runtime
+#import <substrate.h>
 
-// Helper: convert “roblox1”→“roblox”, leave everything else unchanged
-static NSURL *RBXSanitiseURL(NSURL *url)
+/// roblox1:// → roblox://   (оставляет параметры и путь нетронутыми)
+static NSURL *RBXFixScheme(NSURL *url)
 {
-    NSString *scheme = url.scheme.lowercaseString;
-    NSRegularExpression *re =
-        [NSRegularExpression regularExpressionWithPattern:@"^roblox\\d+$"
-                                                  options:0 error:nil];
+    if (!url) return url;
 
+    static NSRegularExpression *re;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        re = [NSRegularExpression regularExpressionWithPattern:@"^roblox\\d+$"
+                                                       options:0 error:nil];
+    });
+
+    NSString *scheme = url.scheme.lowercaseString;
     if ([re firstMatchInString:scheme options:0
                          range:NSMakeRange(0, scheme.length)]) {
 
-        // rebuild roblox://…  (resourceSpecifier preserves path + query)
-        NSString *newStr =
-            [NSString stringWithFormat:@"roblox://%@", url.resourceSpecifier ?: @""];
-        return [NSURL URLWithString:newStr];
+        NSURLComponents *c = [NSURLComponents componentsWithURL:url
+                                         resolvingAgainstBaseURL:NO];
+        c.scheme = @"roblox";
+        return c.URL ?: url;
     }
-    return url;  // untouched
+    return url;
 }
 
-/*  iOS 11+ uses application:openURL:options:
-    Hook it in UIApplication so ALL URL-opens go through us, even if Roblox
-    calls itself or another app redirects.                                         */
-%hook UIApplication
+/* 1. ВХОДЯЩИЕ deep-links (iOS 11+ classic AppDelegate) */
+%hook NSObject   // будет перехвачено только у класса-делегата
 - (BOOL)application:(UIApplication *)app
             openURL:(NSURL *)url
-            options:(NSDictionary<UIApplicationOpenURLOptionsKey,id> *)options
+            options:(NSDictionary<UIApplicationOpenURLOptionsKey,id> *)opts
 {
-    NSURL *patched = RBXSanitiseURL(url);
-    return %orig(app, patched, options);
+    return %orig(app, RBXFixScheme(url), opts);
+}
+%end
+
+/* 2. ВХОДЯЩИЕ deep-links (iOS 13+ c UIScene) */
+%hook UIScene
+- (void)openURLContexts:(NSSet<UIOpenURLContext *> *)contexts
+{
+    if (contexts.count == 0) return %orig(contexts);
+
+    NSMutableSet *fixed = [NSMutableSet setWithCapacity:contexts.count];
+    for (UIOpenURLContext *ctx in contexts) {
+        NSURL *u = RBXFixScheme(ctx.URL);
+        if (u == ctx.URL) {
+            [fixed addObject:ctx];
+        } else {
+            // клонируем контекст с патченым URL
+            UIOpenURLContext *clone =
+                [[UIOpenURLContext alloc] initWithURL:u options:ctx.options];
+            [fixed addObject:clone];
+        }
+    }
+    %orig(fixed);
+}
+%end
+
+/* 3. Исходящие вызовы из Roblox самого себя (не обязателен, но полезен) */
+%hook UIApplication
+- (void)openURL:(NSURL *)url
+        options:(NSDictionary<NSString *, id> *)opts
+completionHandler:(void (^)(BOOL))handler
+{
+    %orig(RBXFixScheme(url), opts, handler);
 }
 %end

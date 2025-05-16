@@ -1,13 +1,13 @@
-THEOS_DEVICE_IP = localhost       # usbmuxd / iproxy etc. if needed
-TARGET          = iphone:clang:latest:14.0
-ARCHS           = arm64 arm64e
-INSTALL_TARGET_PROCESSES = robloxmob*, SpringBoard
-
-include /var/theos/makefiles/common.mk
+THEOS_PACKAGE_SCHEME = rootless
+TARGET  = iphone:clang:latest:15.0   # 15.0 минималка для 15.8.3
+ARCHS   = arm64 arm64e
 
 TWEAK_NAME = rbxurlpatch
-rbxurlpatch_FILES = Tweak.xm
-rbxurlpatch_CFLAGS = -fobjc-arc
-rbxurlpatch_LDFLAGS += -lobjc
+rbxurlpatch_FILES   = Tweak.xm
+rbxurlpatch_CFLAGS  = -fobjc-arc
+rbxurlpatch_LDFLAGS = -lobjc
+
+# процессы, которые нужно killall после «make install»
+INSTALL_TARGET_PROCESSES = com.roblox.robloxmobile1 com.roblox.robloxmobile2 SpringBoard
 
 include /var/theos/makefiles/tweak.mk

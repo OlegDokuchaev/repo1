@@ -1,6 +1,0 @@
-Package: com.yourid.rbxurlpatch
-Version: 0.0.1
-Architecture: iphoneos-arm64
-Description: Strip numeric suffix from robloxN:// URLs so deep-links work in clones
-Maintainer: you@yourmail
-Depends: firmware (>=15.0), ellekit (>= 1.0)
