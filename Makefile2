@@ -7,7 +7,6 @@ THEOS_DEVICE_IP = localhost
 PACKAGE_VERSION = 0.0.1
 export PREFIX   = /var/jb
 
-include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = MultiRobloxScheme
 MultiRobloxScheme_FILES = Tweak.x
