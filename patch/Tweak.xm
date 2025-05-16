@@ -95,7 +95,7 @@ static void HookSceneDelegate(id del)
         @selector(scene:willConnectToSession:options:),
         (IMP)patched_sceneWill,(IMP*)&orig_sceneWill);
 }
-
+/
 __attribute__((constructor))
 static void entry()
 {
