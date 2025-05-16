@@ -99,7 +99,7 @@ static void HookSceneDelegate(id del)
 __attribute__((constructor))
 static void entry()
 {
-    RBXLog(@"▶︎ rbxurlpatch injected (pid=%d)",getpid());
+    RBXLog(@"▶︎ rbxurlpatch!! injected (pid=%d)",getpid());
 
     dispatch_async(dispatch_get_main_queue(), ^{
         HookDelegate(UIApplication.sharedApplication.delegate);
