@@ -8,6 +8,7 @@ rbxurlpatch_CFLAGS  = -fobjc-arc
 rbxurlpatch_LDFLAGS = -lobjc
 
 # процессы, которые нужно killall после «make install»
-INSTALL_TARGET_PROCESSES = com.roblox.robloxmobile1 com.roblox.robloxmobile2 SpringBoard
+INSTALL_TARGET_PROCESSES = com.roblox.robloxmobile com.roblox.robloxmobile1 com.roblox.robloxmobile2 SpringBoard
 
+include /var/theos/makefiles/common.mk
 include /var/theos/makefiles/tweak.mk
