@@ -1,1 +1,1 @@
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)
