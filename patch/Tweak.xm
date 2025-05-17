@@ -87,3 +87,38 @@ static void RBXLog(NSString *fmt, ...)
 }
 
 %end
+
+%hookf(CFComparisonResult, CFStringCompare,
+        CFStringRef a, CFStringRef b, CFStringCompareFlags flags)
+{
+    // helper: true, если строка == "roblox"
+    auto IsBase  = ^BOOL(CFStringRef s) {
+        return CFStringCompare(s, CFSTR("roblox"), 0) == kCFCompareEqualTo;
+    };
+
+    // helper: true, если строка начинается с "roblox" и после идут цифры
+    auto IsClone = ^BOOL(CFStringRef s) {
+        // быстро отсекаем prefix
+        if (!CFStringHasPrefix(s, CFSTR("roblox"))) return NO;
+
+        CFIndex len = CFStringGetLength(s);
+        if (len <= 6) return NO;                 // "roblox" без цифр
+
+        UniChar digits[len - 6];
+        CFStringGetCharacters(s, CFRangeMake(6, len - 6), digits);
+
+        for (CFIndex i = 0; i < len - 6; i++)
+            if (!isdigit(digits[i])) return NO;  // встретили не-цифру
+
+        return YES;                              // «roblox» + ≥1 цифра
+    };
+
+    BOOL aBase   = IsBase(a),   bBase   = IsBase(b);
+    BOOL aClone  = IsClone(a),  bClone  = IsClone(b);
+
+    if ( (aBase && bClone) || (aClone && bBase) )
+        return kCFCompareEqualTo;                // считаем строки равными
+
+    return %orig(a, b, flags);                   // во всех остальных случаях – обычное сравнение
+}
+%end
