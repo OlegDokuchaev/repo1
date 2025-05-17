@@ -1,5 +1,3 @@
-//  rbxurlpatch 1.0-6  — универсальный deep-link патч
-
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <substrate.h>
@@ -30,83 +28,62 @@ static void RBXLog(NSString *fmt, ...)
 
 #pragma mark –– замена схемы
 
-static NSURL *Patch(NSURL *u)
-{
-    if(!u) return u;
-    static NSRegularExpression *re;
-    static dispatch_once_t once;
-    dispatch_once(&once,^{
-        re=[NSRegularExpression regularExpressionWithPattern:@"^roblox\\d+$"
-                                                     options:0 error:nil];
-    });
-    NSString *sch=u.scheme.lowercaseString;
-    if([re firstMatchInString:sch options:0 range:NSMakeRange(0,sch.length)]){
-        NSURLComponents *c=[NSURLComponents componentsWithURL:u resolvingAgainstBaseURL:NO];
-        c.scheme=@"roblox";
-        NSURL *pu=c.URL?:u;
-        RBXLog(@"patch %@  →  %@",u,pu);
-        return pu;
-    }
-    return u;
-}
+%hook UIApplicationDelegate // Будет применяться ко всем классам, реализующим методы делегата
 
-#pragma mark –– динамические хуки
-
-static BOOL (*orig_launch)(id,SEL,UIApplication*,NSDictionary*);
-static BOOL patched_launch(id self,SEL _cmd,UIApplication* app,NSDictionary* opts){
-    RBXLog(@"[launch] opts=%@",opts);
-    NSMutableDictionary *m=[opts mutableCopy];
-    NSURL *url=m[UIApplicationLaunchOptionsURLKey];
-    if(url) m[UIApplicationLaunchOptionsURLKey]=Patch(url);
-    return orig_launch(self,_cmd,app,m);
-}
-
-static void (*orig_sceneWill)(id,SEL,UIScene*,UISceneSession*,UISceneConnectionOptions*);
-static void patched_sceneWill(id self,SEL _cmd,UIScene* sc,UISceneSession* sess,UISceneConnectionOptions* co){
-    if(co.URLContexts.count){
-        UIOpenURLContext *ctx=co.URLContexts.allObjects.firstObject;
-        RBXLog(@"[scene willConnect] %@",ctx.URL);
-        NSURL *pu=Patch(ctx.URL);
-        if(pu!=ctx.URL) [ctx setValue:pu forKey:@"URL"];
-    }
-    orig_sceneWill(self,_cmd,sc,sess,co);
-}
-
-static void HookDelegate(id del)
-{
-    if(!del) return;
-    Class cls=[del class];
-    static dispatch_once_t once;
-    dispatch_once(&once,^{ RBXLog(@"[Hook] AppDelegate = %@",cls); });
-
-    MSHookMessageEx(cls,
-        @selector(application:didFinishLaunchingWithOptions:),
-        (IMP)patched_launch,(IMP*)&orig_launch);
-}
-
-static void HookSceneDelegate(id del)
-{
-    if(!del) return;
-    Class cls=[del class];
-    static dispatch_once_t once;
-    dispatch_once(&once,^{ RBXLog(@"[Hook] SceneDelegate = %@",cls); });
-
-    MSHookMessageEx(cls,
-        @selector(scene:willConnectToSession:options:),
-        (IMP)patched_sceneWill,(IMP*)&orig_sceneWill);
-}
-
-__attribute__((constructor))
-static void entry()
-{
-    RBXLog(@"▶︎ rbxurlpatch!! injected (pid=%d)",getpid());
-
-    dispatch_async(dispatch_get_main_queue(), ^{
-        HookDelegate(UIApplication.sharedApplication.delegate);
-
-        // первая сцена появляется уже к этому моменту
-        for(UIScene* sc in UIApplication.sharedApplication.connectedScenes){
-            HookSceneDelegate(sc.delegate);
+- (BOOL)application:(UIApplication *)app didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    // Проверяем, был ли запуск через URL-схему
+    NSURL *url = launchOptions[UIApplicationLaunchOptionsURLKey];
+    if (url) {
+        NSString *scheme = url.scheme;
+        RBXLog(@"[RobloxSchemeTweak] Launch URL: %@", url);
+        if ([scheme hasPrefix:@"roblox"] && ![scheme isEqualToString:@"roblox"]) {
+            // Если схема начинается с "roblox" (например, roblox3) но не ровно "roblox"
+            NSString *originalURLStr = url.absoluteString;
+            // Заменяем префикс схемы на "roblox"
+            NSString *newURLStr = [originalURLStr stringByReplacingOccurrencesOfString:[scheme stringByAppendingString:@"://"]
+                                                                           withString:@"roblox://"];
+            NSURL *newURL = [NSURL URLWithString:newURLStr];
+            RBXLog(@"[RobloxSchemeTweak] Replacing scheme %@ -> roblox, new URL = %@", scheme, newURL);
+            // Формируем новый launchOptions с заменённой URL-схемой
+            NSMutableDictionary *newOptions = launchOptions.mutableCopy;
+            newOptions[UIApplicationLaunchOptionsURLKey] = newURL;
+            // Вызываем оригинальный метод с модифицированным options
+            BOOL result = %orig(app, newOptions);
+            return result;
         }
-    });
+    }
+    // Если URL нет или схема не требует замены, вызываем оригинал
+    return %orig;
 }
+
+- (BOOL)application:(UIApplication *)app openURL:(NSURL *)url options:(NSDictionary *)options {
+    NSString *scheme = url.scheme;
+    RBXLog(@"[RobloxSchemeTweak] openURL: %@", url);
+    if ([scheme hasPrefix:@"roblox"] && ![scheme isEqualToString:@"roblox"]) {
+        // Логика аналогична: меняем robloxN -> roblox
+        NSString *originalURLStr = url.absoluteString;
+        NSString *newURLStr = [originalURLStr stringByReplacingOccurrencesOfString:[scheme stringByAppendingString:@"://"]
+                                                                       withString:@"roblox://"];
+        NSURL *newURL = [NSURL URLWithString:newURLStr];
+        RBXLog(@"[RobloxSchemeTweak] Replacing scheme %@ -> roblox, new URL = %@", scheme, newURL);
+        return %orig(app, newURL, options);
+    }
+    return %orig;
+}
+
+// (Необязательно) Для старых iOS версий перехватываем устаревший метод, если Roblox его использует:
+- (BOOL)application:(UIApplication *)app openURL:(NSURL *)url sourceApplication:(NSString *)src annotation:(id)annot {
+    NSString *scheme = url.scheme;
+    RBXLog(@"[RobloxSchemeTweak] openURL:sourceApplication: %@", url);
+    if ([scheme hasPrefix:@"roblox"] && ![scheme isEqualToString:@"roblox"]) {
+        NSString *origURLStr = url.absoluteString;
+        NSString *newURLStr = [origURLStr stringByReplacingOccurrencesOfString:[scheme stringByAppendingString:@"://"]
+                                                                    withString:@"roblox://"];
+        NSURL *newURL = [NSURL URLWithString:newURLStr];
+        RBXLog(@"[RobloxSchemeTweak] Replacing scheme %@ -> roblox, new URL = %@", scheme, newURL);
+        return %orig(app, newURL, src, annot);
+    }
+    return %orig;
+}
+
+%end

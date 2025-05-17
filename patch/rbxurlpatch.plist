@@ -3,5 +3,15 @@
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+  <key>Filter</key>
+  <dict>
+    <key>Bundles</key>
+    <array>
+      <string>com.roblox.RobloxMobile1</string>
+      <string>com.roblox.RobloxMobile2</string>
+      <string>com.roblox.robloxmobile1</string>
+      <string>com.roblox.robloxmobile2</string>
+    </array>
+  </dict>
 </dict>
 </plist>
