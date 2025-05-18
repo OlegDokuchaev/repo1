@@ -151,8 +151,7 @@ static CFStringRef (*orig_CFURLCopyScheme)(CFURLRef) = NULL;
 }
 
 /* ———————————————————— 3a. CFStringCompare ———————————————————— */
-%hookf(CFComparisonResult, CFStringCompare,
-       CFStringRef a, CFStringRef b, CFStringCompareFlags flags)
+%hookf(CFComparisonResult, CFStringCompare, CFStringRef a, CFStringRef b, CFStringCompareFlags flags)
 {
     if ((cfIsBase(a)&&cfIsClone(b)) || (cfIsClone(a)&&cfIsBase(b)))
         return kCFCompareEqualTo;
@@ -160,9 +159,7 @@ static CFStringRef (*orig_CFURLCopyScheme)(CFURLRef) = NULL;
 }
 
 /* ———————————————————— 3b. …WithOptions & …WithOptionsAndLocale ——— */
-%hookf(CFComparisonResult, CFStringCompareWithOptions,
-       CFStringRef a, CFStringRef b,
-       CFRange rangeA, CFRange rangeB, CFStringCompareFlags flags)
+%hookf(CFComparisonResult, CFStringCompareWithOptions, CFStringRef a, CFStringRef b, CFRange rangeA, CFRange rangeB, CFStringCompareFlags flags)
 {
     // упрощённо: если сравниваются «полные» строки — применяем правила
     if (rangeA.location==0 && rangeB.location==0 &&
