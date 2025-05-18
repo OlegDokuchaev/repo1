@@ -93,111 +93,51 @@ static void RBXLog(NSString *fmt, ...)
 
 %end
 
-/* ==== helpers ==== */
-static inline bool strIsBase(const char *s){ return strcmp(s,"roblox")==0; }
-static inline bool strIsClone(const char *s){
-    size_t len = strlen(s);
-    if (len <= 6 || strncmp(s,"roblox",6)) return false;
-    for (size_t i = 6; i < len; ++i)
-        if (!isdigit((unsigned char)s[i])) return false;      // cf. isdigit doc
+/* Helpers ---------------------------------------------------------------- */
+static inline bool strIsClone(const char *s) {
+    size_t len=strlen(s);
+    if(len<=6||strncmp(s,"roblox",6)) return false;
+    for(size_t i=6;i<len;++i)
+        if(!isdigit((unsigned char)s[i])) return false;
     return true;
 }
-
-static bool cfStrTest(CFStringRef s, bool(*pred)(const char*)){
-    const char *c = CFStringGetCStringPtr(s, kCFStringEncodingUTF8);
+static bool cfIsClone(CFStringRef s){
+    const char *c=CFStringGetCStringPtr(s,kCFStringEncodingUTF8);
     char buf[64];
-    if (!c){
-        if (!CFStringGetCString(s, buf, sizeof(buf), kCFStringEncodingUTF8))
-            return false;
-        c = buf;
+    if(!c){
+        if(!CFStringGetCString(s,buf,sizeof(buf),kCFStringEncodingUTF8)) return false;
+        c=buf;
     }
-    return pred(c);
+    return strIsClone(c);
 }
-static inline bool cfIsBase (CFStringRef s){ return cfStrTest(s, strIsBase ); }
-static inline bool cfIsClone(CFStringRef s){ return cfStrTest(s, strIsClone); }
+static CFStringRef kBase = CFSTR("roblox");
 
-static CFStringRef kBase = CFSTR("roblox");   // литерал, нет необходимости в release
+/* 1. Единственный перехват ---------------------------------------------- */
+static CFStringRef (*orig_CFURLCopyScheme)(CFURLRef url);
 
-/* ==== указатели на оригиналы ==== */
-static CFComparisonResult (*orig_CFStringCompare)
-    (CFStringRef, CFStringRef, CFStringCompareFlags) = NULL;
-
-static CFComparisonResult (*orig_CFStringCompareWithOptions)
-    (CFStringRef, CFStringRef, CFRange, CFStringCompareFlags) = NULL;
-
-static CFComparisonResult (*orig_CFStringCompareWithOptionsAndLocale)
-    (CFStringRef, CFStringRef, CFRange, CFStringCompareFlags, CFLocaleRef) = NULL;
-
-static Boolean     (*orig_CFEqual)         (CFTypeRef, CFTypeRef)      = NULL;
-static CFStringRef (*orig_CFURLCopyScheme) (CFURLRef)                  = NULL;
-
-/* ==== 1. CFURLCopyScheme ==== */
-%hookf(CFStringRef, CFURLCopyScheme, CFURLRef url){
-    CFStringRef s = orig_CFURLCopyScheme(url);                 // kCFCopyRule
-    if (s && cfIsClone(s)){
+%hookf(CFStringRef, CFURLCopyScheme, CFURLRef url)
+{
+    CFStringRef s = orig_CFURLCopyScheme(url);   // kCFCopyRule
+    if(s && cfIsClone(s)){
         CFRelease(s);
         return (CFStringRef)CFRetain(kBase);
     }
     return s;
 }
 
-/* ==== 2. CFEqual ==== */
-%hookf(Boolean, CFEqual, CFTypeRef a, CFTypeRef b){
-    if (CFGetTypeID(a)==CFStringGetTypeID() && CFGetTypeID(b)==CFStringGetTypeID()){
-        if ((cfIsBase((CFStringRef)a) && cfIsClone((CFStringRef)b)) ||
-            (cfIsClone((CFStringRef)a) && cfIsBase((CFStringRef)b)))
-            return true;
-    }
-    return orig_CFEqual(a, b);
-}
-
-/* ==== 3a. CFStringCompare ==== */
-%hookf(CFComparisonResult, CFStringCompare, CFStringRef a, CFStringRef b, CFStringCompareFlags flags){
-    if ((cfIsBase(a)&&cfIsClone(b)) || (cfIsClone(a)&&cfIsBase(b)))
-        return kCFCompareEqualTo;
-    return orig_CFStringCompare(a, b, flags);
-}
-
-/* ==== 3b. CFStringCompareWithOptions ==== */
-%hookf(CFComparisonResult, CFStringCompareWithOptions, CFStringRef a, CFStringRef b, CFRange range, CFStringCompareFlags flags){
-    if (range.location==0 && range.length==CFStringGetLength(a) &&
-        CFStringGetLength(a)==CFStringGetLength(b) &&
-        ((cfIsBase(a)&&cfIsClone(b))||(cfIsClone(a)&&cfIsBase(b))))
-        return kCFCompareEqualTo;
-    return orig_CFStringCompareWithOptions(a, b, range, flags);
-}
-
-/* ==== 3c. CFStringCompareWithOptionsAndLocale ==== */
-%hookf(CFComparisonResult, CFStringCompareWithOptionsAndLocale, CFStringRef a, CFStringRef b, CFRange range, CFStringCompareFlags flags, CFLocaleRef loc){
-    if (range.location==0 && range.length==CFStringGetLength(a) &&
-        CFStringGetLength(a)==CFStringGetLength(b) &&
-        ((cfIsBase(a)&&cfIsClone(b))||(cfIsClone(a)&&cfIsBase(b))))
-        return kCFCompareEqualTo;
-    return orig_CFStringCompareWithOptionsAndLocale(a, b, range, flags, loc);
-}
-
-/* ==== 4. Obj-C safety-net ==== */
+/* 2. Obj-C safety-net (очень дёшево) ------------------------------------ */
 %hook NSURL
-- (NSString *)scheme{
+- (NSString *)scheme {
     NSString *orig = %orig;
-    if (orig && cfIsClone((__bridge CFStringRef)orig))
+    if(orig && cfIsClone((__bridge CFStringRef)orig))
         return @"roblox";
     return orig;
 }
 %end
 
-/* ==== ctor ==== */
-%ctor{
-    orig_CFStringCompare  = DLSYM_NAME(typeof(orig_CFStringCompare ),
-                                       "CFStringCompare");
-    orig_CFStringCompareWithOptions =
-        DLSYM_NAME(typeof(orig_CFStringCompareWithOptions),
-                   "CFStringCompareWithOptions");
-    orig_CFStringCompareWithOptionsAndLocale =
-        DLSYM_NAME(typeof(orig_CFStringCompareWithOptionsAndLocale),
-                   "CFStringCompareWithOptionsAndLocale");
-    orig_CFEqual         = DLSYM_NAME(typeof(orig_CFEqual), "CFEqual");
-    orig_CFURLCopyScheme = DLSYM_NAME(typeof(orig_CFURLCopyScheme),
-                                      "CFURLCopyScheme");
+/* 3. ctor — берём оригинал ------------------------------------------------ */
+%ctor {
+    orig_CFURLCopyScheme =
+        (CFStringRef(*)(CFURLRef))dlsym(RTLD_DEFAULT,"CFURLCopyScheme");
     %init;
 }
