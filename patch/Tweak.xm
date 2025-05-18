@@ -1,8 +1,11 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
+#include <CoreFoundation/CoreFoundation.h>
 #import <substrate.h>
 #import <os/log.h>
 #import <sys/stat.h>
+#include <dlfcn.h>
+#include <ctype.h>
 
 #pragma mark –– лог
 
