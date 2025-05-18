@@ -6,7 +6,7 @@ PLACE=142823291     # your placeId
 INTERVAL=60         # check interval in seconds
 RESTART_INTERVAL=30 # restart interval in seconds
 
-### Array of schemes: 1 → roblox, 2 → robloxmobile, 3 → robloxglobal, затем по кругу
+### Array of schemes: 1 → roblox, 2 → robloxmobile, 3 → robloxglobal
 schemes=(roblox robloxmobile robloxglobal)
 
 ### Function: checks if a launchctl agent for the given bundle-id is alive
