@@ -87,6 +87,12 @@ static CFStringRef kBase = CFSTR("roblox");        // immortal
 }
 %end
 
+__attribute__((constructor))
+static void entry()
+{
+    RBXLog(@"▶︎ rbxurlpatch injected (pid=%d)",getpid());
+}
+
 #pragma mark - ctor
 
 %ctor {
