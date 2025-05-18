@@ -117,6 +117,7 @@ static CFStringRef (*orig_CFURLCopyScheme)(CFURLRef url);
 
 %hookf(CFStringRef, CFURLCopyScheme, CFURLRef url)
 {
+    RBXLog(@"CFStringRef");
     CFStringRef s = orig_CFURLCopyScheme(url);   // kCFCopyRule
     if(s && cfIsClone(s)){
         CFRelease(s);
@@ -129,6 +130,7 @@ static CFStringRef (*orig_CFURLCopyScheme)(CFURLRef url);
 %hook NSURL
 - (NSString *)scheme {
     NSString *orig = %orig;
+    RBXLog(@"NSURL.scheme");
     if(orig && cfIsClone((__bridge CFStringRef)orig))
         return @"roblox";
     return orig;
