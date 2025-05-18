@@ -12,7 +12,7 @@
 /* Helpers ---------------------------------------------------------------- */
 static inline bool strIsClone(const char *s) {
     size_t len=strlen(s);
-    if(len<=6||strncmp(s,"roblox",6)) return false;
+    if(len<=6||strncmp(s,"qwerty",6)) return false;
     for(size_t i=6;i<len;++i)
         if(!isdigit((unsigned char)s[i])) return false;
     return true;
