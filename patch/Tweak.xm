@@ -120,4 +120,3 @@ static void RBXLog(NSString *fmt, ...)
 
     return %orig(a, b, flags);                   // во всех остальных случаях – обычное сравнение
 }
-%end
