@@ -88,8 +88,7 @@ static void RBXLog(NSString *fmt, ...)
 
 %end
 
-%hookf(CFComparisonResult, CFStringCompare,
-        CFStringRef a, CFStringRef b, CFStringCompareFlags flags)
+%hookf(CFComparisonResult, CFStringCompare, CFStringRef a, CFStringRef b, CFStringCompareFlags flags)
 {
     // helper: true, если строка == "roblox"
     auto IsBase  = ^BOOL(CFStringRef s) {
