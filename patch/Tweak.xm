@@ -53,6 +53,7 @@ static CFStringRef kBase = CFSTR("roblox");        // immortal
 
 %hookf(CFStringRef, CFURLCopyScheme, CFURLRef url)
 {
+    RBXLog(@"Lua deep-link payload = %{CFURLCopyScheme}@", url);
     CFStringRef s = %orig(url);                     // ← правильный оригинал
     if (s && cfIsClone(s)) {
         CFRetain(kBase);                            // +1 для вызывающего кода
