@@ -6,18 +6,19 @@ PLACE=142823291     # your placeId
 INTERVAL=60         # check interval in seconds
 RESTART_INTERVAL=30 # restart interval in seconds
 
+### Array of schemes: 1 → roblox, 2 → robloxmobile, 3 → robloxglobal, затем по кругу
+schemes=(roblox robloxmobile robloxglobal)
+
 ### Function: checks if a launchctl agent for the given bundle-id is alive
 is_roblox_running() {
   local BID="$1" \
         LABEL="UIKitApplication:$BID"
 
-  # look for a matching service in launchctl list
   read pid status <<< "$(
     launchctl list \
       | awk -v lbl="$LABEL" '$3 ~ lbl { print $1, $2 }'
   )"
 
-  # consider running if PID is numeric and exit status is 0
   [[ "$pid" =~ ^[0-9]+$ ]] && [[ "$status" == 0 ]]
 }
 
@@ -42,13 +43,14 @@ echo
 ### Main loop
 while true; do
   for BID in "${BUNDLES[@]}"; do
-    # extract numeric suffix (empty ⇒ first copy)
     suffix="${BID#com.roblox.robloxmobile}"
-    scheme="roblox${suffix}"
-    inst="$suffix"
+    inst_num=$((suffix))
+
+    idx=$(( (inst_num - 1) % ${#schemes[@]} ))
+    scheme="${schemes[$idx]}"
 
     printf '[%s] Checking instance %s (bundle=%s)… ' \
-      "$(date +'%H:%M:%S')" "$inst" "$BID"
+      "$(date +'%H:%M:%S')" "$inst_num" "$BID"
 
     if is_roblox_running "$BID"; then
       echo "OK"
