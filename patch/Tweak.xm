@@ -93,6 +93,18 @@ static void entry()
     RBXLog(@"▶︎ rbxurlpatch injected (pid=%d)",getpid());
 }
 
+__attribute__((constructor))
+static void RBXInit()
+{
+    RBXLog(@"▶︎ rbxurlpatch.dylib injected ✔︎ (pid=%d)", getpid());
+}
+
+__attribute__((constructor))
+static void RBXLoaded(void)
+{
+    RBXLog(@"▶︎ rbxurlpatch.dylib injected ✔︎");
+}
+
 #pragma mark - ctor
 
 %ctor {

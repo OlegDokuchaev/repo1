@@ -2,7 +2,7 @@ THEOS_PACKAGE_SCHEME = rootless
 TARGET  = iphone:clang:latest:15.0
 ARCHS   = arm64 arm64e
 
-PACKAGE_VERSION = 1.0-20
+PACKAGE_VERSION = 1.0-21
 
 TWEAK_NAME = rbxurlpatch
 rbxurlpatch_FILES   = Tweak.xm
