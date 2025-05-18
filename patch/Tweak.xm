@@ -1,7 +1,32 @@
 // RobloxSchemeFix.xm
+#import <UIKit/UIKit.h>
+#import <Foundation/Foundation.h>
 #include <CoreFoundation/CoreFoundation.h>
-#include <Foundation/Foundation.h>
+#import <substrate.h>
+#import <os/log.h>
+#import <sys/stat.h>
+#include <dlfcn.h>
 #include <ctype.h>
+
+static void RBXLog(NSString *fmt, ...)
+{
+    static NSFileHandle *fh;
+    static dispatch_once_t once;
+    va_list va; va_start(va,fmt);
+    NSString *s=[[NSString alloc] initWithFormat:fmt arguments:va];
+    va_end(va);
+
+    os_log(OS_LOG_DEFAULT, "%{public}s", s.UTF8String);
+
+    dispatch_once(&once, ^{
+        mkdir("/var/mobile/Library/Logs",0755);
+        NSString *p=@"/var/mobile/Library/Logs/rbxurlpatch.log";
+        [[NSFileManager defaultManager] createFileAtPath:p contents:nil attributes:nil];
+        fh=[NSFileHandle fileHandleForWritingAtPath:p]; [fh seekToEndOfFile];
+    });
+    [fh writeData:[[s stringByAppendingString:@"\n"]
+                   dataUsingEncoding:NSUTF8StringEncoding]];
+}
 
 #pragma mark - helpers
 static inline bool strIsClone(const char *s) {
@@ -39,20 +64,25 @@ static CFStringRef kBase = CFSTR("roblox");        // immortal
 
 #pragma mark - 2. RBLinkingHelper
 
+%hook RBAppsFlyerTracker
+- (void)didResolveDeepLink:(id)result {
+    // Печать всего объекта result (может быть NSDictionary или кастомный класс)
+    RBXLog(@"AppsFlyer didResolveDeepLink: %{public}@", result);
+    %orig;
+}
+%end
+
 %hook RBLinkingHelper
-+ (void)postDeepLinkNotificationWithURLString:(NSString *)urlStr
-{
-    if (urlStr.length > 6 && [urlStr hasPrefix:@"roblox"]) {
-        NSRange colon = [urlStr rangeOfString:@":"];
-        if (colon.location != NSNotFound) {
-            NSString *scheme = [urlStr substringToIndex:colon.location];
-            if (strIsClone(scheme.UTF8String)) {
-                urlStr = [@"roblox" stringByAppendingString:
-                          [urlStr substringFromIndex:scheme.length]];
-            }
-        }
-    }
++ (void)postDeepLinkNotificationWithURLString:(NSString *)urlStr {
+    RBXLog(@"RBLinkingHelper URL = %{public}s", urlStr.UTF8String);
     %orig(urlStr);
+}
+%end
+
+%hook RBMobileLuaScreenController
+- (void)onNavigateToDeepLink:(NSDictionary *)info {
+    RBXLog(@"Lua deep-link payload = %{public}@", info);
+    %orig(info);
 }
 %end
 
