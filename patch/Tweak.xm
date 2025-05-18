@@ -1,28 +1,32 @@
-// Tweak.xm — iOS 15.8.3 (arm64e / arm64)
+//  RobloxSchemeFix.xm
+//  build:  make package install   (Theos)
 
-#import <CoreFoundation/CoreFoundation.h>
-#import <Foundation/Foundation.h>
-#import <ctype.h>
+/*----------------------------------------------------------------------*/
+#include <CoreFoundation/CoreFoundation.h>
+#include <Foundation/Foundation.h>
+#include <dlfcn.h>
+#include <ctype.h>
 
-#pragma mark – helpers -------------------------------------------------------
+#ifndef RTLD_DEFAULT               // гарантировано в Darwin, но на случай exotic SDK
+#define RTLD_DEFAULT ((void *)0)
+#endif
 
-static inline bool strIsClone(const char *s)
-{
-    if (strncmp(s, "roblox", 6) != 0) return false;
-    const char *p = s + 6;
-    if (!*p) return false;                     // минимум одна цифра
-    for (; *p; ++p)
-        if (!isdigit((unsigned char)*p))
-            return false;
+#pragma mark - helpers
+
+/* C-level test: “roblox” followed by ≥1 decimal digit */
+static inline bool strIsClone(const char *s) {
+    if (strncmp(s, "roblox", 6) != 0)      return false;
+    size_t len = strlen(s);
+    if (len <= 6)                          return false;
+    for (size_t i = 6; i < len; ++i)
+        if (!isdigit((unsigned char)s[i])) return false;   // cast → UB-free  [oai_citation:0‡GitHub](https://github.com/Ragekill3377/Titanox?utm_source=chatgpt.com)
     return true;
 }
 
-static bool cfIsClone(CFStringRef str)
-{
-    if (!str) return false;
-    // 256 байт — достаточно для URL-схем + safety-margin
-    char buf[256];
+/* CFStringRef → bool, no recursion into CFStringCompare */
+static bool cfIsClone(CFStringRef str) {
     const char *c = CFStringGetCStringPtr(str, kCFStringEncodingUTF8);
+    char  buf[64];
     if (!c) {
         if (!CFStringGetCString(str, buf, sizeof(buf), kCFStringEncodingUTF8))
             return false;
@@ -31,44 +35,53 @@ static bool cfIsClone(CFStringRef str)
     return strIsClone(c);
 }
 
-static CFStringRef kRoblox = CFSTR("roblox");          // immortal
+static CFStringRef kBase = CFSTR("roblox");    // immortal CFSTR (no release)
 
-#pragma mark – 1. CFURLCopyScheme -------------------------------------------
+#pragma mark ----------------------------------------------------------------
+#pragma mark 1.  Core Foundation entry-point  (CFURLCopyScheme)
+
+static CFStringRef (*orig_CFURLCopyScheme)(CFURLRef url) = NULL;
 
 %hookf(CFStringRef, CFURLCopyScheme, CFURLRef url)
 {
-    CFStringRef s = %orig(url);                         // +1 retain (rule *Copy*)
-    if (cfIsClone(s)) {
-        CFRelease(s);                                   // балансируем %orig
-        return CFRetain(kRoblox);                       // +1 для вызывающего
+    CFStringRef s = orig_CFURLCopyScheme(url);             // +1 retain by contract
+    if (s && cfIsClone(s)) {
+        CFRelease(s);                                      // balance retain
+        return (CFStringRef)CFRetain(kBase);               // hand back +1
     }
-    return s;                                           // как есть
+    return s;                                              // unchanged
 }
 
-#pragma mark – 2. RBLinkingHelper -------------------------------------------
+#pragma mark ----------------------------------------------------------------
+#pragma mark 2.  Roblox router  (RBLinkingHelper)
 
 %hook RBLinkingHelper
 + (void)postDeepLinkNotificationWithURLString:(NSString *)urlStr
 {
-    if (urlStr.length > 7 && [urlStr hasPrefix:@"roblox"]) {
-        NSUInteger colon = [urlStr rangeOfString:@":"].location;
-        if (colon != NSNotFound) {
-            NSString *scheme = [urlStr substringToIndex:colon];
+    /* nil-check: оригинальная реализация логирует и выходит */
+    if (urlStr && urlStr.length > 6 && [urlStr hasPrefix:@"roblox"]) {
+        NSRange colon = [urlStr rangeOfString:@":"];        // separate scheme
+        if (colon.location != NSNotFound) {
+            NSString *scheme = [urlStr substringToIndex:colon.location];
             if (strIsClone(scheme.UTF8String)) {
+                /* rebuild:  “roblox”  +  rest-of-URL */
                 urlStr = [@"roblox" stringByAppendingString:
                           [urlStr substringFromIndex:scheme.length]];
             }
         }
     }
-    %orig(urlStr);
+    %orig(urlStr);                                         // hidden self/_cmd forwarded
 }
 %end
 
-#pragma mark – ctor ---------------------------------------------------------
+#pragma mark ----------------------------------------------------------------
+#pragma mark ctor
 
 %ctor
 {
-    // Logos сам подставит trampoline и сформирует %orig,
-    // поэтому дополнительных dlsym-манипуляций не нужно.
+    /* grab clean pointer before %init — prevents NULL / signature mismatch   *
+     * self + _cmd are implicit; param-3 is NSString* (seen in your disasm)   */
+    orig_CFURLCopyScheme =
+        (CFStringRef(*)(CFURLRef))dlsym(RTLD_DEFAULT, "CFURLCopyScheme");
     %init;
 }
