@@ -7,53 +7,77 @@
 #include <dlfcn.h>
 #include <ctype.h>
 
-#define DLSYM_NAME(type, sym) ((type)(void *)dlsym(RTLD_DEFAULT, sym))
+#pragma mark - helpers ------------------------------------------------------
 
-/* Helpers ---------------------------------------------------------------- */
-static inline bool strIsClone(const char *s) {
-    size_t len=strlen(s);
-    if(len<=6||strncmp(s,"qwerty",6)) return false;
-    for(size_t i=6;i<len;++i)
-        if(!isdigit((unsigned char)s[i])) return false;
+/* C-проверка: roblox + ≥1 цифра */
+static inline bool strIsClone(const char *s)
+{
+    if (strncmp(s, "roblox", 6) != 0) return false;
+    size_t len = strlen(s);
+    if (len <= 6) return false;
+    for (size_t i = 6; i < len; ++i)
+        if (!isdigit((unsigned char)s[i]))
+            return false;
     return true;
 }
-static bool cfIsClone(CFStringRef s){
-    const char *c=CFStringGetCStringPtr(s,kCFStringEncodingUTF8);
+
+/* CFStringRef → bool (клон ли) */
+static bool cfIsClone(CFStringRef str)
+{
+    const char *c = CFStringGetCStringPtr(str, kCFStringEncodingUTF8);
     char buf[64];
-    if(!c){
-        if(!CFStringGetCString(s,buf,sizeof(buf),kCFStringEncodingUTF8)) return false;
-        c=buf;
+    if (!c) {
+        if (!CFStringGetCString(str, buf, sizeof(buf), kCFStringEncodingUTF8))
+            return false;
+        c = buf;
     }
     return strIsClone(c);
 }
-static CFStringRef kBase = CFSTR("roblox");
 
-/* 1. Единственный перехват ---------------------------------------------- */
-static CFStringRef (*orig_CFURLCopyScheme)(CFURLRef url);
+static CFStringRef kBase = CFSTR("roblox");   // «бессмертная» строка
+
+#pragma mark - 1. CFURLCopyScheme hook --------------------------------------
+
+static CFStringRef (*orig_CFURLCopyScheme)(CFURLRef url) = NULL;
 
 %hookf(CFStringRef, CFURLCopyScheme, CFURLRef url)
 {
-    CFStringRef s = orig_CFURLCopyScheme(url);   // kCFCopyRule
-    if(s && cfIsClone(s)){
-        CFRelease(s);
+    CFStringRef s = orig_CFURLCopyScheme(url);           // по правилу *Copy*: +1 retain
+    if (s && cfIsClone(s)) {                             // robloxN → roblox
+        CFRelease(s);                                    // отдаём нашу строку с +1
         return (CFStringRef)CFRetain(kBase);
     }
-    return s;
+    return s;                                            // вернуть как есть
 }
 
-/* 2. Obj-C safety-net (очень дёшево) ------------------------------------ */
-%hook NSURL
-- (NSString *)scheme {
-    NSString *orig = %orig;
-    if(orig && cfIsClone((__bridge CFStringRef)orig))
-        return @"roblox";
-    return orig;
+#pragma mark - 2. RBLinkingHelper hook --------------------------------------
+
+%hook RBLinkingHelper              // класс есть во всех сборках Roblox iOS
++ (void)postDeepLinkNotificationWithURLString:(NSString *)urlStr
+{
+    if (urlStr.length > 7 && [urlStr hasPrefix:@"roblox"]) {
+        // отделяем схему
+        NSRange colon = [urlStr rangeOfString:@":"];
+        if (colon.location != NSNotFound) {
+            NSString *scheme = [urlStr substringToIndex:colon.location];
+            if (scheme.length > 6 &&
+                strIsClone([scheme UTF8String]))          // robloxN?
+            {
+                urlStr = [@"roblox" stringByAppendingString:
+                          [urlStr substringFromIndex:scheme.length]];
+            }
+        }
+    }
+    %orig(urlStr);                                        // вызываем оригинал
 }
 %end
 
-/* 3. ctor — берём оригинал ------------------------------------------------ */
-%ctor {
-    orig_CFURLCopyScheme =
-        (CFStringRef(*)(CFURLRef))dlsym(RTLD_DEFAULT,"CFURLCopyScheme");
-    %init;
+#pragma mark - ctor ---------------------------------------------------------
+
+%ctor
+{
+    // безопасно: RTLD_DEFAULT присутствует во всех Darwin-SDK
+    orig_CFURLCopyScheme = (CFStringRef(*)(CFURLRef))
+        dlsym(RTLD_DEFAULT, "CFURLCopyScheme");
+    %init;   // активируем хуки
 }
