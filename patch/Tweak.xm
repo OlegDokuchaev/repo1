@@ -88,35 +88,112 @@ static void RBXLog(NSString *fmt, ...)
 
 %end
 
-%hookf(CFComparisonResult, CFStringCompare, CFStringRef a, CFStringRef b, CFStringCompareFlags flags)
+/* ————————————————————— helpers ————————————————————— */
+static inline bool strIsBase(const char *s) {
+    return strcmp(s, "roblox") == 0;
+}
+static inline bool strIsClone(const char *s) {
+    size_t len = strlen(s);
+    if (len <= 6 || strncmp(s, "roblox", 6)) return false;
+    for (size_t i = 6; i < len; ++i)
+        if (!isdigit((unsigned char)s[i])) return false;
+    return true;
+}
+static bool cfIsBase(CFStringRef s);
+static bool cfIsClone(CFStringRef s);
+
+static bool cfStrTest(CFStringRef s, bool (*pred)(const char*)) {
+    const char *c = CFStringGetCStringPtr(s, kCFStringEncodingUTF8);
+    char buf[64];
+    if (!c) {
+        if (!CFStringGetCString(s, buf, sizeof(buf), kCFStringEncodingUTF8))
+            return false;
+        c = buf;
+    }
+    return pred(c);
+}
+static bool cfIsBase(CFStringRef s)  { return cfStrTest(s, strIsBase);  }
+static bool cfIsClone(CFStringRef s) { return cfStrTest(s, strIsClone); }
+
+static CFStringRef kBase = CFSTR("roblox");   // retain-free literal
+
+/* ——————————————————— originals via dlsym ——————————————————— */
+static CFComparisonResult (*orig_CFStringCompare)
+        (CFStringRef, CFStringRef, CFStringCompareFlags) = NULL;
+static CFComparisonResult (*orig_CFStringCompareWithOptions)
+        (CFStringRef, CFStringRef, CFRange, CFComparisonResult,
+         CFStringCompareFlags) = NULL;   // same ABI for *_Locale
+static Boolean (*orig_CFEqual)(CFTypeRef, CFTypeRef) = NULL;
+static CFStringRef (*orig_CFURLCopyScheme)(CFURLRef) = NULL;
+
+/* ———————————————————— 1. scheme getter ———————————————————— */
+%hookf(CFStringRef, CFURLCopyScheme, CFURLRef url)
 {
-    // helper: true, если строка == "roblox"
-    auto IsBase  = ^BOOL(CFStringRef s) {
-        return CFStringCompare(s, CFSTR("roblox"), 0) == kCFCompareEqualTo;
-    };
+    CFStringRef s = orig_CFURLCopyScheme(url);
+    if (!s) return s;
 
-    // helper: true, если строка начинается с "roblox" и после идут цифры
-    auto IsClone = ^BOOL(CFStringRef s) {
-        // быстро отсекаем prefix
-        if (!CFStringHasPrefix(s, CFSTR("roblox"))) return NO;
+    if (cfIsClone(s)) {
+        CFRelease(s);
+        return CFRetain(kBase);          // follow CF Create/Copy rule
+    }
+    return s;
+}
 
-        CFIndex len = CFStringGetLength(s);
-        if (len <= 6) return NO;                 // "roblox" без цифр
+/* ———————————————————— 2. string equality ———————————————————— */
+%hookf(Boolean, CFEqual, CFTypeRef a, CFTypeRef b)
+{
+    if (CFGetTypeID(a)==CFStringGetTypeID() &&
+        CFGetTypeID(b)==CFStringGetTypeID()) {
+        if ((cfIsBase(a)&&cfIsClone(b)) || (cfIsClone(a)&&cfIsBase(b)))
+            return true;
+    }
+    return orig_CFEqual(a, b);
+}
 
-        UniChar digits[len - 6];
-        CFStringGetCharacters(s, CFRangeMake(6, len - 6), digits);
+/* ———————————————————— 3a. CFStringCompare ———————————————————— */
+%hookf(CFComparisonResult, CFStringCompare,
+       CFStringRef a, CFStringRef b, CFStringCompareFlags flags)
+{
+    if ((cfIsBase(a)&&cfIsClone(b)) || (cfIsClone(a)&&cfIsBase(b)))
+        return kCFCompareEqualTo;
+    return orig_CFStringCompare(a, b, flags);
+}
 
-        for (CFIndex i = 0; i < len - 6; i++)
-            if (!isdigit(digits[i])) return NO;  // встретили не-цифру
+/* ———————————————————— 3b. …WithOptions & …WithOptionsAndLocale ——— */
+%hookf(CFComparisonResult, CFStringCompareWithOptions,
+       CFStringRef a, CFStringRef b,
+       CFRange rangeA, CFRange rangeB, CFStringCompareFlags flags)
+{
+    // упрощённо: если сравниваются «полные» строки — применяем правила
+    if (rangeA.location==0 && rangeB.location==0 &&
+        rangeA.length==CFStringGetLength(a) &&
+        rangeB.length==CFStringGetLength(b)) {
+        if ((cfIsBase(a)&&cfIsClone(b)) || (cfIsClone(a)&&cfIsBase(b)))
+            return kCFCompareEqualTo;
+    }
+    return orig_CFStringCompareWithOptions(a, b, rangeA, rangeB, flags);
+}
 
-        return YES;                              // «roblox» + ≥1 цифра
-    };
+/* alias: CFStringCompareWithOptionsAndLocale имеет ту же сигнатуру,
+   поэтому Logos автоматически применит тот же hook               */
 
-    BOOL aBase   = IsBase(a),   bBase   = IsBase(b);
-    BOOL aClone  = IsClone(a),  bClone  = IsClone(b);
+/* ———————————————————— 3c. Obj-C layer (safety net) ——————————— */
+%hook NSURL
+- (NSString *)scheme
+{
+    NSString *orig = %orig;
+    if (orig && cfIsClone((__bridge CFStringRef)orig))
+        return @"roblox";
+    return orig;
+}
+%end
 
-    if ( (aBase && bClone) || (aClone && bBase) )
-        return kCFCompareEqualTo;                // считаем строки равными
-
-    return %orig(a, b, flags);                   // во всех остальных случаях – обычное сравнение
+/* ———————————————————— ctor ———————————————————— */
+%ctor {
+    orig_CFStringCompare = dlsym(RTLD_NEXT, "CFStringCompare");
+    orig_CFStringCompareWithOptions =
+        dlsym(RTLD_NEXT, "CFStringCompareWithOptions");
+    orig_CFEqual = dlsym(RTLD_NEXT, "CFEqual");
+    orig_CFURLCopyScheme = dlsym(RTLD_NEXT, "CFURLCopyScheme");
+    %init;
 }
