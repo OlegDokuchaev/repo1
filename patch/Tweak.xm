@@ -1,31 +1,28 @@
-#import <UIKit/UIKit.h>
+// Tweak.xm — iOS 15.8.3 (arm64e / arm64)
+
+#import <CoreFoundation/CoreFoundation.h>
 #import <Foundation/Foundation.h>
-#include <CoreFoundation/CoreFoundation.h>
-#import <substrate.h>
-#import <os/log.h>
-#import <sys/stat.h>
-#include <dlfcn.h>
-#include <ctype.h>
+#import <ctype.h>
 
-#pragma mark - helpers ------------------------------------------------------
+#pragma mark – helpers -------------------------------------------------------
 
-/* C-проверка: roblox + ≥1 цифра */
 static inline bool strIsClone(const char *s)
 {
     if (strncmp(s, "roblox", 6) != 0) return false;
-    size_t len = strlen(s);
-    if (len <= 6) return false;
-    for (size_t i = 6; i < len; ++i)
-        if (!isdigit((unsigned char)s[i]))
+    const char *p = s + 6;
+    if (!*p) return false;                     // минимум одна цифра
+    for (; *p; ++p)
+        if (!isdigit((unsigned char)*p))
             return false;
     return true;
 }
 
-/* CFStringRef → bool (клон ли) */
 static bool cfIsClone(CFStringRef str)
 {
+    if (!str) return false;
+    // 256 байт — достаточно для URL-схем + safety-margin
+    char buf[256];
     const char *c = CFStringGetCStringPtr(str, kCFStringEncodingUTF8);
-    char buf[64];
     if (!c) {
         if (!CFStringGetCString(str, buf, sizeof(buf), kCFStringEncodingUTF8))
             return false;
@@ -34,50 +31,44 @@ static bool cfIsClone(CFStringRef str)
     return strIsClone(c);
 }
 
-static CFStringRef kBase = CFSTR("roblox");   // «бессмертная» строка
+static CFStringRef kRoblox = CFSTR("roblox");          // immortal
 
-#pragma mark - 1. CFURLCopyScheme hook --------------------------------------
-
-static CFStringRef (*orig_CFURLCopyScheme)(CFURLRef url) = NULL;
+#pragma mark – 1. CFURLCopyScheme -------------------------------------------
 
 %hookf(CFStringRef, CFURLCopyScheme, CFURLRef url)
 {
-    CFStringRef s = orig_CFURLCopyScheme(url);           // по правилу *Copy*: +1 retain
-    if (s && cfIsClone(s)) {                             // robloxN → roblox
-        CFRelease(s);                                    // отдаём нашу строку с +1
-        return (CFStringRef)CFRetain(kBase);
+    CFStringRef s = %orig(url);                         // +1 retain (rule *Copy*)
+    if (cfIsClone(s)) {
+        CFRelease(s);                                   // балансируем %orig
+        return CFRetain(kRoblox);                       // +1 для вызывающего
     }
-    return s;                                            // вернуть как есть
+    return s;                                           // как есть
 }
 
-#pragma mark - 2. RBLinkingHelper hook --------------------------------------
+#pragma mark – 2. RBLinkingHelper -------------------------------------------
 
-%hook RBLinkingHelper              // класс есть во всех сборках Roblox iOS
+%hook RBLinkingHelper
 + (void)postDeepLinkNotificationWithURLString:(NSString *)urlStr
 {
     if (urlStr.length > 7 && [urlStr hasPrefix:@"roblox"]) {
-        // отделяем схему
-        NSRange colon = [urlStr rangeOfString:@":"];
-        if (colon.location != NSNotFound) {
-            NSString *scheme = [urlStr substringToIndex:colon.location];
-            if (scheme.length > 6 &&
-                strIsClone([scheme UTF8String]))          // robloxN?
-            {
+        NSUInteger colon = [urlStr rangeOfString:@":"].location;
+        if (colon != NSNotFound) {
+            NSString *scheme = [urlStr substringToIndex:colon];
+            if (strIsClone(scheme.UTF8String)) {
                 urlStr = [@"roblox" stringByAppendingString:
                           [urlStr substringFromIndex:scheme.length]];
             }
         }
     }
-    %orig(urlStr);                                        // вызываем оригинал
+    %orig(urlStr);
 }
 %end
 
-#pragma mark - ctor ---------------------------------------------------------
+#pragma mark – ctor ---------------------------------------------------------
 
 %ctor
 {
-    // безопасно: RTLD_DEFAULT присутствует во всех Darwin-SDK
-    orig_CFURLCopyScheme = (CFStringRef(*)(CFURLRef))
-        dlsym(RTLD_DEFAULT, "CFURLCopyScheme");
-    %init;   // активируем хуки
+    // Logos сам подставит trampoline и сформирует %orig,
+    // поэтому дополнительных dlsym-манипуляций не нужно.
+    %init;
 }
