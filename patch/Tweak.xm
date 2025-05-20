@@ -28,19 +28,28 @@ static void RBXLog(NSString *fmt, ...)
                    dataUsingEncoding:NSUTF8StringEncoding]];
 }
 
+-(void)showMessage:(NSString*)message withTitle:(NSString *)title
+{
+
+ UIAlertController * alert=   [UIAlertController
+                                  alertControllerWithTitle:title
+                                  message:message
+                                  preferredStyle:UIAlertControllerStyleAlert];
+
+    UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action){
+        //do something when click button
+    }];
+    [alert addAction:okAction];
+    UIViewController *vc = [[[[UIApplication sharedApplication] delegate] window] rootViewController];
+    [vc presentViewController:alert animated:YES completion:nil];
+}
+
 %hook RBAppsFlyerTracker
 
 // –[RBAppsFlyerTracker didResolveDeepLink:]  ⇢ 1 аргумент
 - (void)didResolveDeepLink:(id)result {
-    UIAlertView *alert1 = [[UIAlertView alloc] initWithTitle:@"Welcome"
-        message:@"This is a test."
-        delegate:self
-        cancelButtonTitle:@"Testing"
-        otherButtonTitles:nil];
-    //Now show that alert
-    [alert1 show];
-    //And release it. We don't want any memory leaks ;)
-    [alert1 release];
+    [self showMessage:@"Some test"
+                    withTitle:@"Testing"];
 
     // 1. Получаем deepLink динамически (AppsFlyerDeepLink*)
     id deepLink = [result performSelector:@selector(deepLink)];
