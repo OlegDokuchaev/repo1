@@ -28,28 +28,35 @@ static void RBXLog(NSString *fmt, ...)
                    dataUsingEncoding:NSUTF8StringEncoding]];
 }
 
--(void)showMessage:(NSString*)message withTitle:(NSString *)title
-{
+static void ShowAlert(NSString *message, NSString *title) {
+    // Создаём контроллер с параметрами
+    UIAlertController *alert = [UIAlertController
+        alertControllerWithTitle:title
+                         message:message
+                  preferredStyle:UIAlertControllerStyleAlert];
 
- UIAlertController * alert=   [UIAlertController
-                                  alertControllerWithTitle:title
-                                  message:message
-                                  preferredStyle:UIAlertControllerStyleAlert];
-
-    UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action){
-        //do something when click button
-    }];
+    // Добавляем кнопку OK
+    UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK"
+                                                       style:UIAlertActionStyleDefault
+                                                     handler:nil];
     [alert addAction:okAction];
-    UIViewController *vc = [[[[UIApplication sharedApplication] delegate] window] rootViewController];
-    [vc presentViewController:alert animated:YES completion:nil];
+
+    // Находим топ-most UIViewController
+    UIViewController *rootVC = [UIApplication sharedApplication].delegate.window.rootViewController;
+    UIViewController *presentingVC = rootVC;
+    while (presentingVC.presentedViewController) {
+        presentingVC = presentingVC.presentedViewController;
+    }
+
+    // Показываем алерт
+    [presentingVC presentViewController:alert animated:YES completion:nil];
 }
 
 %hook RBAppsFlyerTracker
 
 // –[RBAppsFlyerTracker didResolveDeepLink:]  ⇢ 1 аргумент
 - (void)didResolveDeepLink:(id)result {
-    [self showMessage:@"Some test"
-                    withTitle:@"Testing"];
+    ShowAlert(@"Testing", @"Some test");
 
     // 1. Получаем deepLink динамически (AppsFlyerDeepLink*)
     id deepLink = [result performSelector:@selector(deepLink)];
