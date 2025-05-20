@@ -72,6 +72,34 @@ static void RBXLog(NSString *fmt, ...)
 }
 %end
 
+// Подсмотренная в рантайме сигнатура: –(void)openLink:(id)link;
+%hook RBLinkingProtocol
+- (void)openLink:(id)link {
+
+    // Универсально работаем и со строками, и с NSURL
+    NSString *urlString = nil;
+
+    if ([link isKindOfClass:[NSString class]]) {
+        urlString = (NSString *)link;
+    } else if ([link isKindOfClass:[NSURL class]]) {
+        urlString = [(NSURL *)link absoluteString];
+    }
+
+    if ([urlString hasPrefix:@"roblox1://"]) {
+
+        NSString *patched = [urlString stringByReplacingOccurrencesOfString:@"roblox1://"
+                                                                 withString:@"roblox://"];
+
+        if ([link isKindOfClass:[NSString class]]) {
+            link = patched;
+        } else if ([link isKindOfClass:[NSURL class]]) {
+            link = [NSURL URLWithString:patched];
+        }
+    }
+    %orig(link);   // передаём исправленную ссылку оригиналу
+}
+%end
+
 %ctor {
     RBXLog(@"[RobloxDLFix] loaded with ElleKit ✅");
 }
