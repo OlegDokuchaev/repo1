@@ -129,6 +129,19 @@ completionHandler:(id)completion {
 }
 %end
 
+%hook RBLinkingHelper
+- (void)postDeepLinkNotificationWithURLString:(NSString *)urlStr {
+
+    // заменяем только неправильный префикс
+    if ([urlStr hasPrefix:@"roblox1://"]) {
+        RBXLog(@"[Fix] patching scheme → %@", urlStr);
+        urlStr = [urlStr stringByReplacingOccurrencesOfString:@"roblox1://"
+                                                   withString:@"roblox://"];
+    }
+    %orig(urlStr);          // уведомляем систему уже «правильной» строкой
+}
+%end
+
 %ctor {
     RBXLog(@"[RobloxDLFix] loaded with ElleKit ✅");
 }
