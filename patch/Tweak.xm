@@ -1,4 +1,3 @@
-// RobloxSchemeFix.xm
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #include <CoreFoundation/CoreFoundation.h>
@@ -28,85 +27,25 @@ static void RBXLog(NSString *fmt, ...)
                    dataUsingEncoding:NSUTF8StringEncoding]];
 }
 
-#pragma mark - helpers
-static inline bool strIsClone(const char *s) {
-    if (strncmp(s, "roblox", 6) != 0) return false;
-    for (const char *p = s + 6; *p; ++p)
-        if (!isdigit((unsigned char)*p)) return false;
-    return true;
-}
-
-static bool cfIsClone(CFStringRef str) {
-    const char *c = CFStringGetCStringPtr(str, kCFStringEncodingUTF8);
-    char buf[64];
-    if (!c) {
-        if (!CFStringGetCString(str, buf, sizeof(buf), kCFStringEncodingUTF8))
-            return false;
-        c = buf;
-    }
-    return strIsClone(c);
-}
-
-static CFStringRef kBase = CFSTR("roblox");        // immortal
-
-#pragma mark - 1. CFURLCopyScheme
-
-%hookf(CFStringRef, CFURLCopyScheme, CFURLRef url)
-{
-    RBXLog(@"Lua deep-link payload = %{CFURLCopyScheme}@", url);
-    CFStringRef s = %orig(url);                     // ← правильный оригинал
-    if (s && cfIsClone(s)) {
-        CFRetain(kBase);                            // +1 для вызывающего кода
-        CFRelease(s);                               // балансируем Copy-правило
-        return kBase;
-    }
-    return s;
-}
-
-#pragma mark - 2. RBLinkingHelper
-
 %hook RBAppsFlyerTracker
-- (void)didResolveDeepLink:(id)result {
-    // Печать всего объекта result (может быть NSDictionary или кастомный класс)
-    RBXLog(@"AppsFlyer didResolveDeepLink: %{public}@", result);
-    %orig;
+
+- (void)didResolveDeepLink:(id)deepLinkResult {
+
+    id deepLink   = [deepLinkResult deepLink];
+    NSString *nav = [deepLink navigationLink];
+
+    if ([nav hasPrefix:@"roblox1://"]) {
+        NSString *patched =
+            [nav stringByReplacingOccurrencesOfString:@"roblox1://"
+                                           withString:@"roblox://"];
+
+        [deepLink setValue:patched forKey:@"navigationLink"];
+    }
+
+    %orig(deepLinkResult);   // Continue normal flow
 }
 %end
-
-%hook RBLinkingHelper
-+ (void)postDeepLinkNotificationWithURLString:(NSString *)urlStr {
-    RBXLog(@"RBLinkingHelper URL = %{public}s", urlStr.UTF8String);
-    %orig(urlStr);
-}
-%end
-
-%hook RBMobileLuaScreenController
-- (void)onNavigateToDeepLink:(NSDictionary *)info {
-    RBXLog(@"Lua deep-link payload = %{public}@", info);
-    %orig(info);
-}
-%end
-
-__attribute__((constructor))
-static void entry()
-{
-    RBXLog(@"▶︎ rbxurlpatch injected (pid=%d)",getpid());
-}
-
-__attribute__((constructor))
-static void RBXInit()
-{
-    RBXLog(@"▶︎ rbxurlpatch.dylib injected ✔︎ (pid=%d)", getpid());
-}
-
-__attribute__((constructor))
-static void RBXLoaded(void)
-{
-    RBXLog(@"▶︎ rbxurlpatch.dylib injected ✔︎");
-}
-
-#pragma mark - ctor
 
 %ctor {
-    %init;     // никаких dlsym / MSFindSymbol не требуется
+    RBXLog(@"[RobloxDLFix] loaded with ElleKit ✅");
 }
