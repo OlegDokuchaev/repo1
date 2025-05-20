@@ -100,6 +100,38 @@ static void RBXLog(NSString *fmt, ...)
 }
 %end
 
+%hook UIApplication
+
+// ① deprecated вариант
+- (BOOL)openURL:(NSURL *)url {
+
+    NSURL *patched = url;
+    if ([[url absoluteString] hasPrefix:@"roblox1://"]) {
+        NSString *fixed = [[[url absoluteString]
+                             stringByReplacingOccurrencesOfString:@"roblox1://"
+                                                       withString:@"roblox://"]];
+        patched = [NSURL URLWithString:fixed];
+    }
+    return %orig(patched);                 // передаём исправленный URL
+}
+
+// ② современный вариант
+- (void)openURL:(NSURL *)url
+        options:(NSDictionary *)options
+completionHandler:(id)completion {
+
+    NSURL *patched = url;
+    if ([[url absoluteString] hasPrefix:@"roblox1://"]) {
+        NSString *fixed = [[[url absoluteString]
+                             stringByReplacingOccurrencesOfString:@"roblox1://"
+                                                       withString:@"roblox://"]];
+        patched = [NSURL URLWithString:fixed];
+    }
+    %orig(patched, options, completion);   // вызов оригинала
+}
+
+%end
+
 %ctor {
     RBXLog(@"[RobloxDLFix] loaded with ElleKit ✅");
 }
