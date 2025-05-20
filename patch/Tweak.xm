@@ -57,6 +57,7 @@ static void ShowAlert(NSString *message, NSString *title) {
 // –[RBAppsFlyerTracker didResolveDeepLink:]  ⇢ 1 аргумент
 - (void)didResolveDeepLink:(id)result {
     ShowAlert(@"didResolveDeepLink", @"didResolveDeepLink");
+    RBXLog(@"didResolveDeepLink");
 
     // 1. Получаем deepLink динамически (AppsFlyerDeepLink*)
     id deepLink = [result performSelector:@selector(deepLink)];
@@ -101,6 +102,7 @@ static void ShowAlert(NSString *message, NSString *title) {
 %hook RBLinkingProtocol
 - (void)openLink:(id)link {
     ShowAlert(@"openLink", @"openLink");
+    RBXLog(@"openLink");
 
     // Универсально работаем и со строками, и с NSURL
     NSString *urlString = nil;
@@ -130,6 +132,7 @@ static void ShowAlert(NSString *message, NSString *title) {
 
 - (BOOL)openURL:(NSURL *)url {
     ShowAlert(@"openURL", @"openURL");
+    RBXLog(@"openURL");
 
     NSURL *patched = url;
     if ([[url absoluteString] hasPrefix:@"roblox1://"]) {
@@ -145,6 +148,7 @@ static void ShowAlert(NSString *message, NSString *title) {
         options:(NSDictionary *)options
 completionHandler:(id)completion {
     ShowAlert(@"openURL2", @"openURL2");
+    RBXLog(@"openURL2");
 
     NSURL *patched = url;
     if ([[url absoluteString] hasPrefix:@"roblox1://"]) {
@@ -160,6 +164,7 @@ completionHandler:(id)completion {
 %hook RBLinkingHelper
 - (void)postDeepLinkNotificationWithURLString:(NSString *)urlStr {
     ShowAlert(@"postDeepLinkNotificationWithURLString", @"postDeepLinkNotificationWithURLString");
+    RBXLog(@"postDeepLinkNotificationWithURLString");
 
     // заменяем только неправильный префикс
     if ([urlStr hasPrefix:@"roblox1://"]) {
