@@ -194,6 +194,9 @@ static void InitLateHooksIfNeeded(void) {
     RBXLog(@"RobloxDLFix injected (pid %d)", getpid());
 
     dispatch_async(dispatch_get_main_queue(), ^{
+        %init(RBLateHooks);
+        RBXLog(@"RBLateHooks хуки активированы");
+
         // 2. Пытаемся найти UIApplication немедленно
         if (NSClassFromString(@"UIApplication")) {
             InitLateHooksIfNeeded();                // ← один вызов
