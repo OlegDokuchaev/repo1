@@ -198,11 +198,11 @@ static void InitLateHooksIfNeeded(void) {
         NSString *exe = [[NSBundle mainBundle] executablePath];
         unsigned int n = 0;
         const char **names = objc_copyClassNamesForImage(exe.UTF8String, &n);
-        NSLog(@"Roblox-классов в образе: %u", n);
+        RBXLog(@"Roblox-классов в образе %s: %u", exe.UTF8String, n);
         for (unsigned int i = 0; i < n; i++)
             RBXLog(@"%s", names[i]);       // здесь будут RB-, RBL-, RBN-… классы
         free(names);
-        
+
         %init(RBLateHooks);
         RBXLog(@"RBLateHooks хуки активированы");
 
