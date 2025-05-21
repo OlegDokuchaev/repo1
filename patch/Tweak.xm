@@ -8,6 +8,7 @@
 #include <ctype.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import "RBDeepLinkActionData.h"   // сгенерированный заголовок
 
 static void RBXLog(NSString *fmt, ...)
 {
@@ -51,6 +52,18 @@ static void ShowAlert(NSString *message, NSString *title) {
 
     // Показываем алерт
     [presentingVC presentViewController:alert animated:YES completion:nil];
+}
+
+static NSURL *AFix(NSURL *u) {
+    RBXLog(@"AFix");
+
+    if ([[u scheme] isEqualToString:@"roblox1"]) {
+        /* «отрезаем» символ ‘1’ и создаём новый объект */
+        NSString *fixed = [@"roblox://" stringByAppendingString:
+                           [[u absoluteString] substringFromIndex:10]];
+        return [NSURL URLWithString:fixed];
+    }
+    return u;
 }
 
 %hook RBAppsFlyerTracker
@@ -188,6 +201,15 @@ static void InitLateHooksIfNeeded(void) {
         RBXLog(@"UIApplication хуки активированы");
     });
 }
+
+%hook RBDeepLinkActionData
+- (void)setUrl:(NSString *)url { %orig([AFix([NSURL URLWithString:url]) absoluteString]); }
+- (id)initWithDictionary:(NSDictionary *)dict {
+    id s = %orig;
+    if (s) { [self setUrl:[AFix([NSURL URLWithString:[self url]]) absoluteString]]; }
+    return s;
+}
+%end
 
 %ctor {
     %init;
