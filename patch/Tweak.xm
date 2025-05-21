@@ -218,7 +218,6 @@ static void InitLateHooksIfNeeded(void) {
            (unsigned long long)opts);
     return %orig;
 }
-%end
 
 %ctor {
     %init;
