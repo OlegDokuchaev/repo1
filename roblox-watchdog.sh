@@ -26,8 +26,9 @@ is_roblox_running() {
 mapfile -t BUNDLES < <(
   uicache -l \
     | awk '{print $1}' \
-    | grep -E '^com\.roblox\.robloxmobile[0-9]+$'
+    | grep -E '^com\.roblox\.robloxmobile2$'
 )
+### grep -E '^com\.roblox\.robloxmobile[0-9]+$'
 
 if (( ${#BUNDLES[@]} == 0 )); then
   echo "❌ No Roblox copies found in uicache" >&2
