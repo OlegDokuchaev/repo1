@@ -9,6 +9,7 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 #import "RBDeepLinkActionData.h"   // сгенерированный заголовок
+#include <substrate.h>
 
 static void RBXLog(NSString *fmt, ...)
 {
