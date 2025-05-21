@@ -182,7 +182,6 @@ completionHandler:(id)completion {
     %orig(scene, _cmd, selfRef, URLContexts);
 }
 %end
-%end
 
 %group RBLateHooks   // <- объявляем группу, которую активируем вручную
 %hook RBLinkingHelper
