@@ -184,8 +184,8 @@ completionHandler:(id)completion {
 static void InitLateHooksIfNeeded(void) {
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        %init(RBLateHooks);                         // ← максимум один такой макрос
-        RBXLog(@"RBLinkingHelper хуки активированы");
+        %init(RBUIApplicationHooks);
+        RBXLog(@"UIApplication хуки активированы");
     });
 }
 
@@ -194,11 +194,8 @@ static void InitLateHooksIfNeeded(void) {
     RBXLog(@"RobloxDLFix injected (pid %d)", getpid());
 
     dispatch_async(dispatch_get_main_queue(), ^{
-        %init(RBUIApplicationHooks);
-        RBXLog(@"UIApplication хуки активированы");
-
-        // 2. Пытаемся найти RBLinkingHelper немедленно
-        if (NSClassFromString(@"RBLinkingHelper")) {
+        // 2. Пытаемся найти UIApplication немедленно
+        if (NSClassFromString(@"UIApplication")) {
             InitLateHooksIfNeeded();                // ← один вызов
         } else {
             // 3. Ждём загрузки фреймворка
@@ -207,21 +204,9 @@ static void InitLateHooksIfNeeded(void) {
                           object:nil
                            queue:nil
                       usingBlock:^(__unused NSNotification *n) {
-                if (NSClassFromString(@"RBLinkingHelper"))
+                if (NSClassFromString(@"UIApplication"))
                     InitLateHooksIfNeeded();        // ← второй вызов, но once-guard
             }];
-        }
-
-        unsigned int count = 0;
-        Class *classes = objc_copyClassList(&count);
-        if (classes && count) {
-            RBXLog(@"Всего классов: %u", count);
-
-            for (unsigned int i = 0; i < count; i++) {
-                const char *cname = class_getName(classes[i]);
-                RBXLog(@"%4u — %s", i, cname);
-            }
-            free(classes);          // не забываем освобождать
         }
     });
 }
