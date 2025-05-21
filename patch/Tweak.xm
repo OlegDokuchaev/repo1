@@ -214,8 +214,8 @@ static void InitLateHooksIfNeeded(void) {
 
 %hookf(CFComparisonResult, CFStringCompare, CFStringRef str1, CFStringRef str2, CFOptionFlags opts) {
     RBXLog(@"[StringHook] CFStringCompare: '%@' vs '%@' (opts=0x%llx)'",
-           NSStringFromCFString(str1),
-           NSStringFromCFString(str2),
+           (__bridge NSString *)str1,
+           (__bridge NSString *)str2,
            (unsigned long long)opts);
     return %orig;
 }
