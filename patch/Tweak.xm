@@ -163,28 +163,6 @@ completionHandler:(id)completion {
 %end
 %end
 
-%group RBSceneHooks                   // для проектов с UIScene
-%hookf(void, scene_openURLContexts, id /*UIScene*/ scene, SEL _cmd, id selfRef, NSSet *URLContexts)            // %hookf для C-стиля селектора
-{
-    ShowAlert(@"scene_openURLContexts", @"scene_openURLContexts");
-    RBXLog(@"scene_openURLContexts");
-
-    for (UIOpenURLContext *ctx in URLContexts) {
-        NSURL *u = ctx.URL;
-        if ([[u absoluteString] hasPrefix:@"roblox1://"]) {
-            NSURL *fixed =
-              [NSURL URLWithString:
-               [[u absoluteString]
-                 stringByReplacingOccurrencesOfString:@"roblox1://"
-                                           withString:@"roblox://"]];
-            [ctx setValue:fixed forKey:@"URL"];
-            RBXLog(@"scene:openURLContexts: patched → %@", fixed);
-        }
-    }
-    %orig(scene, _cmd, selfRef, URLContexts);
-}
-%end
-
 %group RBLateHooks   // <- объявляем группу, которую активируем вручную
 %hook RBLinkingHelper
 - (void)postDeepLinkNotificationWithURLString:(NSString *)urlStr {
@@ -217,7 +195,6 @@ static void InitLateHooksIfNeeded(void) {
     dispatch_async(dispatch_get_main_queue(), ^{
         // 1. UIApplication – сразу
         %init(RBUIApplicationHooks);
-        %init(RBSceneHooks);
         RBXLog(@"UIApplication хуки активированы");
 
         // 2. Пытаемся найти RBLinkingHelper немедленно
