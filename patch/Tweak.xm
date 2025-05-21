@@ -211,6 +211,15 @@ static void InitLateHooksIfNeeded(void) {
 }
 %end
 
+%hookf(CFComparisonResult, CFStringCompare, CFStringRef str1, CFStringRef str2, CFOptionFlags opts) {
+    RBXLog(@"[StringHook] CFStringCompare: '%@' vs '%@' (opts=0x%llx)'",
+           NSStringFromCFString(str1),
+           NSStringFromCFString(str2),
+           (unsigned long long)opts);
+    return %orig;
+}
+%end
+
 %ctor {
     %init;
     RBXLog(@"RobloxDLFix injected");
