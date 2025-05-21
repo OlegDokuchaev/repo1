@@ -206,5 +206,13 @@ static void InitLateHooksIfNeeded(void) {
                 if (NSClassFromString(@"UIApplication"))
                     InitLateHooksIfNeeded();        // ← второй вызов, но once-guard
             }];
+
+        // вызывайте ЭТОТ код уже внутри процесса Roblox, лучше в main-queue
+        NSString *exe = [[NSBundle mainBundle] executablePath];   // …/RobloxMobile.app/RobloxMobile
+        unsigned int n = 0;
+        const char **names = objc_copyClassNamesForImage(exe.UTF8String, &n);
+        for (unsigned int i = 0; i < n; i++)
+            RBXLog(@"%s", names[i]);       // здесь будут RB-, RBL-, RBN-… классы
+        free(names);
     });
 }
