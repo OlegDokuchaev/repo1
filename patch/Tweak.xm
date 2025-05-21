@@ -191,11 +191,11 @@ static void InitLateHooksIfNeeded(void) {
 
 %ctor {
     %init;
-    RBXLog(@"RobloxDLFix injected (pid %d)", getpid());
-    NSString *flag = @"/var/mobile/Library/Logs/rbx_injected.flag";
-    [@"ok" writeToFile:flag atomically:YES encoding:4 error:nil];
+    RBXLog(@"RobloxDLFix injected");
 
     dispatch_async(dispatch_get_main_queue(), ^{
+        RBXLog(@"RobloxDLFix injected (pid %d)", getpid());
+
         // вызывайте ЭТОТ код уже внутри процесса Roblox, лучше в main-queue
         NSString *exe = [[NSBundle mainBundle] executablePath];
         unsigned int n = 0;
