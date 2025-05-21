@@ -164,11 +164,7 @@ completionHandler:(id)completion {
 %end
 
 %group RBSceneHooks                   // для проектов с UIScene
-%hookf(void, scene_openURLContexts,
-       id /*UIScene*/ scene,
-       SEL _cmd,
-       id selfRef,
-       NSSet *URLContexts)            // %hookf для C-стиля селектора
+%hookf(void, scene_openURLContexts, id /*UIScene*/ scene, SEL _cmd, id selfRef, NSSet *URLContexts)            // %hookf для C-стиля селектора
 
 {
     for (UIOpenURLContext *ctx in URLContexts) {
