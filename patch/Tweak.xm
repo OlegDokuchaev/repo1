@@ -194,14 +194,32 @@ static void InitLateHooksIfNeeded(void) {
     RBXLog(@"RobloxDLFix injected (pid %d)", getpid());
 
     dispatch_async(dispatch_get_main_queue(), ^{
+        %init(RBUIApplicationHooks);
+        RBXLog(@"UIApplication хуки активированы");
+
+        // 2. Пытаемся найти RBLinkingHelper немедленно
+        if (NSClassFromString(@"RBLinkingHelper")) {
+            InitLateHooksIfNeeded();                // ← один вызов
+        } else {
+            // 3. Ждём загрузки фреймворка
+            [[NSNotificationCenter defaultCenter]
+              addObserverForName:NSBundleDidLoadNotification
+                          object:nil
+                           queue:nil
+                      usingBlock:^(__unused NSNotification *n) {
+                if (NSClassFromString(@"RBLinkingHelper"))
+                    InitLateHooksIfNeeded();        // ← второй вызов, но once-guard
+            }];
+        }
+
         unsigned int count = 0;
         Class *classes = objc_copyClassList(&count);
         if (classes && count) {
-            NSLog(@"Всего классов: %u", count);
+            RBXLog(@"Всего классов: %u", count);
 
             for (unsigned int i = 0; i < count; i++) {
                 const char *cname = class_getName(classes[i]);
-                NSLog(@"%4u — %s", i, cname);
+                RBXLog(@"%4u — %s", i, cname);
             }
             free(classes);          // не забываем освобождать
         }
