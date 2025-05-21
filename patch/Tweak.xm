@@ -197,11 +197,7 @@ static void InitLateHooksIfNeeded(void) {
         %init(RBLateHooks);
         RBXLog(@"RBLateHooks хуки активированы");
 
-        // 2. Пытаемся найти UIApplication немедленно
-        if (NSClassFromString(@"UIApplication")) {
-            InitLateHooksIfNeeded();                // ← один вызов
-        } else {
-            // 3. Ждём загрузки фреймворка
+        // 3. Ждём загрузки фреймворка
             [[NSNotificationCenter defaultCenter]
               addObserverForName:NSBundleDidLoadNotification
                           object:nil
@@ -210,6 +206,5 @@ static void InitLateHooksIfNeeded(void) {
                 if (NSClassFromString(@"UIApplication"))
                     InitLateHooksIfNeeded();        // ← второй вызов, но once-guard
             }];
-        }
     });
 }
