@@ -8,7 +8,6 @@
     NSString *_url;
 }
 
-- (void).cxx_destruct;
 @property(nonatomic) int handlerType; // @synthesize handlerType=_handlerType;
 @property(retain, nonatomic) NSString *url; // @synthesize url=_url;
 - (id)initWithDictionary:(id)arg1;
