@@ -6,7 +6,8 @@
 #import <sys/stat.h>
 #include <dlfcn.h>
 #include <ctype.h>
-#import <objc/message.h>   // objc_msgSend pointer cast
+#import <objc/message.h>
+#import <objc/runtime.h>
 
 static void RBXLog(NSString *fmt, ...)
 {
@@ -193,23 +194,16 @@ static void InitLateHooksIfNeeded(void) {
     RBXLog(@"RobloxDLFix injected (pid %d)", getpid());
 
     dispatch_async(dispatch_get_main_queue(), ^{
-        // 1. UIApplication – сразу
-        %init(RBUIApplicationHooks);
-        RBXLog(@"UIApplication хуки активированы");
+        unsigned int count = 0;
+        Class *classes = objc_copyClassList(&count);
+        if (classes && count) {
+            NSLog(@"Всего классов: %u", count);
 
-        // 2. Пытаемся найти RBLinkingHelper немедленно
-        if (NSClassFromString(@"RBLinkingHelper")) {
-            InitLateHooksIfNeeded();                // ← один вызов
-        } else {
-            // 3. Ждём загрузки фреймворка
-            [[NSNotificationCenter defaultCenter]
-              addObserverForName:NSBundleDidLoadNotification
-                          object:nil
-                           queue:nil
-                      usingBlock:^(__unused NSNotification *n) {
-                if (NSClassFromString(@"RBLinkingHelper"))
-                    InitLateHooksIfNeeded();        // ← второй вызов, но once-guard
-            }];
+            for (unsigned int i = 0; i < count; i++) {
+                const char *cname = class_getName(classes[i]);
+                NSLog(@"%4u — %s", i, cname);
+            }
+            free(classes);          // не забываем освобождать
         }
     });
 }
