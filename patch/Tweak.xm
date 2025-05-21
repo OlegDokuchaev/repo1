@@ -128,6 +128,7 @@ static void ShowAlert(NSString *message, NSString *title) {
 }
 %end
 
+%group RBUIApplicationHooks          // ℹ️ активируем вручную
 %hook UIApplication
 
 - (BOOL)openURL:(NSURL *)url {
@@ -160,7 +161,34 @@ completionHandler:(id)completion {
     %orig(patched, options, completion);
 }
 %end
+%groupend
 
+%group RBSceneHooks                   // для проектов с UIScene
+%hookf(void, scene_openURLContexts,
+       id /*UIScene*/ scene,
+       SEL _cmd,
+       id selfRef,
+       NSSet *URLContexts)            // %hookf для C-стиля селектора
+
+{
+    for (UIOpenURLContext *ctx in URLContexts) {
+        NSURL *u = ctx.URL;
+        if ([[u absoluteString] hasPrefix:@"roblox1://"]) {
+            NSURL *fixed =
+              [NSURL URLWithString:
+               [[u absoluteString]
+                 stringByReplacingOccurrencesOfString:@"roblox1://"
+                                           withString:@"roblox://"]];
+            [ctx setValue:fixed forKey:@"URL"];
+            RBXLog(@"scene:openURLContexts: patched → %@", fixed);
+        }
+    }
+    %orig(scene, _cmd, selfRef, URLContexts);
+}
+%end
+%groupend
+
+%group RBLateHooks   // <- объявляем группу, которую активируем вручную
 %hook RBLinkingHelper
 - (void)postDeepLinkNotificationWithURLString:(NSString *)urlStr {
     ShowAlert(@"postDeepLinkNotificationWithURLString", @"postDeepLinkNotificationWithURLString");
@@ -175,7 +203,47 @@ completionHandler:(id)completion {
     %orig(urlStr);          // уведомляем систему уже «правильной» строкой
 }
 %end
+%groupend
 
-%ctor {
-    RBXLog(@"[RobloxDLFix] loaded with ElleKit ✅");
+%ctor
+{
+    RBXLog(@"RobloxDLFix injected (pid %d)", getpid());
+
+    // безопасно уходим на main-queue, чтобы UIKit полностью поднялся
+    dispatch_async(dispatch_get_main_queue(), ^{
+
+        // 1.  UIApplication — активируем сразу
+        %init(RBUIApplicationHooks);
+        RBXLog(@"UIApplication хуки активированы");
+
+        // 2.  Пытаемся сразу найти RBLinkingHelper
+        if (NSClassFromString(@"RBLinkingHelper"))
+        {
+            %init(RBLateHooks);
+            RBXLog(@"RBLinkingHelper найден — хуки активированы");
+        }
+        else
+        {
+            // 3.  Подписка: как только подгрузится любой bundle,
+            //     проверяем ещё раз
+            [[NSNotificationCenter defaultCenter]
+              addObserverForName:NSBundleDidLoadNotification
+                          object:nil
+                           queue:nil
+                      usingBlock:^(__unused NSNotification *n) {
+
+                if (NSClassFromString(@"RBLinkingHelper"))
+                {
+                    %init(RBLateHooks);
+                    RBXLog(@"RBLinkingHelper появился — хуки активированы поздно");
+
+                    // отписываемся: хук уже включён
+                    [[NSNotificationCenter defaultCenter]
+                        removeObserver:self
+                                  name:NSBundleDidLoadNotification
+                                object:nil];
+                }
+            }];
+        }
+    });
 }

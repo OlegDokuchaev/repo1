@@ -1,6 +1,6 @@
 THEOS_PACKAGE_SCHEME = rootless
 ARCHS   = arm64 arm64e
-PACKAGE_VERSION = 1.0-30
+PACKAGE_VERSION = 1.0-31
 include /var/theos/makefiles/common.mk
 
 TWEAK_NAME = rbxurlpatch
