@@ -161,7 +161,7 @@ completionHandler:(id)completion {
     %orig(patched, options, completion);
 }
 %end
-%groupend
+%end
 
 %group RBSceneHooks                   // для проектов с UIScene
 %hookf(void, scene_openURLContexts,
@@ -186,7 +186,7 @@ completionHandler:(id)completion {
     %orig(scene, _cmd, selfRef, URLContexts);
 }
 %end
-%groupend
+%end
 
 %group RBLateHooks   // <- объявляем группу, которую активируем вручную
 %hook RBLinkingHelper
@@ -203,7 +203,7 @@ completionHandler:(id)completion {
     %orig(urlStr);          // уведомляем систему уже «правильной» строкой
 }
 %end
-%groupend
+%end
 
 %ctor
 {
