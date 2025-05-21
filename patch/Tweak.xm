@@ -192,6 +192,8 @@ static void InitLateHooksIfNeeded(void) {
 %ctor {
     %init;
     RBXLog(@"RobloxDLFix injected (pid %d)", getpid());
+    NSString *flag = [@"/var/mobile/Library/Logs/rbx_injected_%d.flag" stringByFormat:getpid()];
+    [@"ok" writeToFile:flag atomically:YES encoding:4 error:nil];
 
     dispatch_async(dispatch_get_main_queue(), ^{
         // вызывайте ЭТОТ код уже внутри процесса Roblox, лучше в main-queue
