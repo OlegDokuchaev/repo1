@@ -200,44 +200,35 @@ completionHandler:(id)completion {
 %end
 %end
 
-%ctor
-{
+static void InitLateHooksIfNeeded(void) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        %init(RBLateHooks);                         // ← максимум один такой макрос
+        RBXLog(@"RBLinkingHelper хуки активированы");
+    });
+}
+
+%ctor {
     RBXLog(@"RobloxDLFix injected (pid %d)", getpid());
 
-    // безопасно уходим на main-queue, чтобы UIKit полностью поднялся
     dispatch_async(dispatch_get_main_queue(), ^{
 
-        // 1.  UIApplication — активируем сразу
+        // 1. UIApplication – сразу
         %init(RBUIApplicationHooks);
         RBXLog(@"UIApplication хуки активированы");
 
-        // 2.  Пытаемся сразу найти RBLinkingHelper
-        if (NSClassFromString(@"RBLinkingHelper"))
-        {
-            %init(RBLateHooks);
-            RBXLog(@"RBLinkingHelper найден — хуки активированы");
-        }
-        else
-        {
-            // 3.  Подписка: как только подгрузится любой bundle,
-            //     проверяем ещё раз
+        // 2. Пытаемся найти RBLinkingHelper немедленно
+        if (NSClassFromString(@"RBLinkingHelper")) {
+            InitLateHooksIfNeeded();                // ← один вызов
+        } else {
+            // 3. Ждём загрузки фреймворка
             [[NSNotificationCenter defaultCenter]
               addObserverForName:NSBundleDidLoadNotification
                           object:nil
                            queue:nil
                       usingBlock:^(__unused NSNotification *n) {
-
                 if (NSClassFromString(@"RBLinkingHelper"))
-                {
-                    %init(RBLateHooks);
-                    RBXLog(@"RBLinkingHelper появился — хуки активированы поздно");
-
-                    // отписываемся: хук уже включён
-                    [[NSNotificationCenter defaultCenter]
-                        removeObserver:self
-                                  name:NSBundleDidLoadNotification
-                                object:nil];
-                }
+                    InitLateHooksIfNeeded();        // ← второй вызов, но once-guard
             }];
         }
     });
